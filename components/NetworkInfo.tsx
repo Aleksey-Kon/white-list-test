@@ -40,25 +40,18 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
         </View>
       )}*/}
 
+      {networkInfo.carrier && (
+        <View style={styles.infoRow}>
+          <ThemedText style={styles.label}>Сеть:</ThemedText>
+          <ThemedText style={styles.value}>{networkInfo.carrier}</ThemedText>
+        </View>
+      )}
+
       {networkInfo.isWifi && (
         <View style={styles.warningRow}>
           <ThemedText style={styles.warningText}>
             ⚠️ Для теста отключите WiFi и VPN и используйте мобильный интернет
           </ThemedText>
-        </View>
-      )}
-
-      {networkInfo.ip && (
-        <View style={styles.infoRow}>
-          <ThemedText style={styles.label}>IP адрес:</ThemedText>
-          <ThemedText style={styles.value}>{networkInfo.ip}</ThemedText>
-        </View>
-      )}
-
-      {networkInfo.carrier && (
-        <View style={styles.infoRow}>
-          <ThemedText style={styles.label}>Сеть:</ThemedText>
-          <ThemedText style={styles.value}>{networkInfo.carrier}</ThemedText>
         </View>
       )}
     </ThemedView>

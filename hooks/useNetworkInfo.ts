@@ -8,7 +8,6 @@ export interface NetworkInfo {
   isWifi: boolean;
   isCellular: boolean;
   ssid?: string;
-  ip?: string;
   carrier?: string;
 }
 
@@ -32,16 +31,7 @@ export function useNetworkInfo() {
         networkState.type === Network.NetworkStateType.CELLULAR;
 
       let ssid: string | undefined;
-      let ip: string | undefined;
       let carrier: string | undefined;
-
-      // Получаем IP адрес
-      try {
-        const ipAddress = await Network.getIpAddressAsync();
-        ip = ipAddress;
-      } catch (e) {
-        // Не удалось получить IP
-      }
 
       // Получаем информацию о сотовом операторе
       if (isCellular) {
@@ -76,7 +66,6 @@ export function useNetworkInfo() {
         isWifi,
         isCellular,
         ssid,
-        ip,
         carrier,
       });
     } catch (error) {
