@@ -109,9 +109,14 @@ export function Results({ result }: ResultsProps) {
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                 {title}
               </ThemedText>
-              <ThemedText style={styles.sectionArrow}>
-                {expandedSections[key] ? "▲" : "▼"}
-              </ThemedText>
+              <View style={styles.arrowContainer}>
+                <View
+                  style={[
+                    styles.arrow,
+                    expandedSections[key] && styles.arrowExpanded,
+                  ]}
+                />
+              </View>
             </TouchableOpacity>
 
             {expandedSections[key] && (
@@ -222,6 +227,23 @@ const styles = StyleSheet.create({
   sectionArrow: {
     fontSize: 12,
     opacity: 0.6,
+  },
+  arrowContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  arrow: {
+    width: 8,
+    height: 8,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: "rgba(128, 128, 128, 0.6)",
+    transform: [{ rotate: "45deg" }],
+  },
+  arrowExpanded: {
+    transform: [{ rotate: "-135deg" }],
   },
   sectionContent: {
     paddingHorizontal: 8,
