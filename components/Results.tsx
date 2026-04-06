@@ -1,17 +1,52 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { SiteResult, TestResult } from "@/utils/sitePinger";
-import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface ResultsProps {
   result: TestResult | null;
 }
 
+type SectionKey = "whitelist" | "russian" | "neutral";
+
 export function Results({ result }: ResultsProps) {
+  const [expandedSections, setExpandedSections] = useState<
+    Record<SectionKey, boolean>
+  >({
+    whitelist: false,
+    russian: false,
+    neutral: false,
+  });
+
+  const toggleSection = (section: SectionKey) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   if (!result) {
     return null;
   }
+
+  const sections: { key: SectionKey; title: string; sites: SiteResult[] }[] = [
+    {
+      key: "whitelist",
+      title: "📋 Белый список РФ",
+      sites: result.whitelistResults,
+    },
+    {
+      key: "russian",
+      title: "🇷🇺 Другие российские сайты",
+      sites: result.russianResults,
+    },
+    {
+      key: "neutral",
+      title: "🌍 Нейтральные зарубежные сайты",
+      sites: result.neutralResults,
+    },
+  ];
 
   return (
     <ThemedView style={styles.container}>
@@ -41,55 +76,53 @@ export function Results({ result }: ResultsProps) {
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
           <ThemedText style={styles.statNumber}>
-            {result.whitelistResults.filter((r) => r.accessible).length}/10
+            {result.whitelistResults.filter((r) => r.accessible).length}/
+            {result.whitelistResults.length}
           </ThemedText>
           <ThemedText style={styles.statLabel}>Белый список РФ</ThemedText>
         </View>
         <View style={styles.statBox}>
           <ThemedText style={styles.statNumber}>
-            {result.russianResults.filter((r) => r.accessible).length}/10
+            {result.russianResults.filter((r) => r.accessible).length}/
+            {result.russianResults.length}
           </ThemedText>
           <ThemedText style={styles.statLabel}>Российские сайты</ThemedText>
         </View>
         <View style={styles.statBox}>
           <ThemedText style={styles.statNumber}>
-            {result.neutralResults.filter((r) => r.accessible).length}/10
+            {result.neutralResults.filter((r) => r.accessible).length}/
+            {result.neutralResults.length}
           </ThemedText>
           <ThemedText style={styles.statLabel}>Нейтральные сайты</ThemedText>
         </View>
       </View>
 
-      {/* Детальные результаты */}
+      {/* Детальные результаты - раскрывающиеся списки */}
       <ScrollView style={styles.detailsContainer}>
-        {/* Белый список РФ */}
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            📋 Белый список РФ
-          </ThemedText>
-          {result.whitelistResults.map((site, index) => (
-            <SiteResultRow key={index} site={site} />
-          ))}
-        </View>
+        {sections.map(({ key, title, sites }) => (
+          <View key={key} style={styles.section}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection(key)}
+              activeOpacity={0.7}
+            >
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                {title}
+              </ThemedText>
+              <ThemedText style={styles.sectionArrow}>
+                {expandedSections[key] ? "▲" : "▼"}
+              </ThemedText>
+            </TouchableOpacity>
 
-        {/* Российские сайты */}
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            🇷🇺 Российские сайты
-          </ThemedText>
-          {result.russianResults.map((site, index) => (
-            <SiteResultRow key={index} site={site} />
-          ))}
-        </View>
-
-        {/* Нейтральные сайты */}
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            🌍 Нейтральные зарубежные сайты
-          </ThemedText>
-          {result.neutralResults.map((site, index) => (
-            <SiteResultRow key={index} site={site} />
-          ))}
-        </View>
+            {expandedSections[key] && (
+              <View style={styles.sectionContent}>
+                {sites.map((site, index) => (
+                  <SiteResultRow key={index} site={site} />
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
       </ScrollView>
     </ThemedView>
   );
@@ -172,11 +205,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    marginBottom: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "rgba(128, 128, 128, 0.05)",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
   },
   sectionTitle: {
     fontSize: 16,
-    marginBottom: 8,
+  },
+  sectionArrow: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  sectionContent: {
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
   siteRow: {
     flexDirection: "row",
