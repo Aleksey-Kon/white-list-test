@@ -1,3 +1,4 @@
+import * as Cellular from "expo-cellular";
 import * as Network from "expo-network";
 import { useEffect, useState } from "react";
 
@@ -8,6 +9,7 @@ export interface NetworkInfo {
   isCellular: boolean;
   ssid?: string;
   ip?: string;
+  carrier?: string;
 }
 
 export function useNetworkInfo() {
@@ -31,6 +33,7 @@ export function useNetworkInfo() {
 
       let ssid: string | undefined;
       let ip: string | undefined;
+      let carrier: string | undefined;
 
       // Получаем IP адрес
       try {
@@ -38,6 +41,18 @@ export function useNetworkInfo() {
         ip = ipAddress;
       } catch (e) {
         // Не удалось получить IP
+      }
+
+      // Получаем информацию о сотовом операторе
+      if (isCellular) {
+        try {
+          const carrierName = await Cellular.getCarrierNameAsync();
+          if (carrierName) {
+            carrier = carrierName;
+          }
+        } catch (e) {
+          // Не удалось получить информацию о операторе
+        }
       }
 
       // Получаем SSID для WiFi
@@ -62,6 +77,7 @@ export function useNetworkInfo() {
         isCellular,
         ssid,
         ip,
+        carrier,
       });
     } catch (error) {
       console.error("Error fetching network info:", error);

@@ -54,6 +54,13 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
           <ThemedText style={styles.value}>{networkInfo.ip}</ThemedText>
         </View>
       )}
+
+      {networkInfo.carrier && (
+        <View style={styles.infoRow}>
+          <ThemedText style={styles.label}>Сеть:</ThemedText>
+          <ThemedText style={styles.value}>{networkInfo.carrier}</ThemedText>
+        </View>
+      )}
     </ThemedView>
   );
 }
