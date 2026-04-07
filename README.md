@@ -2,7 +2,9 @@
 
 Мобильное приложение для проверки белых списков, разработанное на **React Native** с использованием **Expo**.
 
-<img src="./.assets/screenshot.png" alt="Скриншот приложения" width="300" />
+<p align="center">
+  <img src="./.assets/screenshot.png" alt="Скриншот приложения" width="300" />
+</p>
 
 ## 🚀 Возможности
 
@@ -64,6 +66,16 @@ testwhitelist/
 ├── hooks/            # Пользовательские хуки
 └── scripts/          # Вспомогательные скрипты
 ```
+
+## 📸 Скриншоты
+
+<p align="center">
+  <img src="./assets/screenshots/home.png" alt="Главный экран" width="250" />
+</p>
+
+<p align="center">
+  <img src="./assets/screenshots/add.png" alt="Экран добавления" width="250" />
+</p>
 
 ## 🤝 Вклад
 
