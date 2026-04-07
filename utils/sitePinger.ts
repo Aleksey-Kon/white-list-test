@@ -176,11 +176,12 @@ export async function runFullTest(): Promise<TestResult> {
   );
 
   // Определяем наличие белого списка
-  // Если больше 7 из 10 нейтральных сайтов недоступны = есть белые списки
+  // Если больше 70% нейтральных сайтов недоступны = есть белые списки
   const neutralInaccessible = neutralResults.filter(
     (r) => !r.accessible,
   ).length;
-  const hasWhitelist = neutralInaccessible > 7;
+  const inaccessiblePercent = neutralInaccessible / neutralResults.length;
+  const hasWhitelist = inaccessiblePercent > 0.7;
 
   return {
     whitelistResults,
