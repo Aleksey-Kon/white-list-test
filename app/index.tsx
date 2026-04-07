@@ -17,8 +17,44 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
 
   const handleTest = useCallback(async () => {
+    const hasVpn = networkInfo.isVpn;
+    const hasWifi = networkInfo.isWifi;
+    const notCellular = !networkInfo.isCellular;
+
+    // Сценарий: WiFi + VPN
+    if (hasWifi && hasVpn) {
+      Alert.alert(
+        "Внимание",
+        "Обнаружены WiFi и VPN одновременно. Для корректного теста: Отключите WiFi, Отключите VPN. Продолжить?",
+        [
+          { text: "Отмена", style: "cancel" },
+          {
+            text: "Продолжить",
+            onPress: () => runTest(),
+          },
+        ],
+      );
+      return;
+    }
+
+    // Предупреждение если VPN
+    if (hasVpn) {
+      Alert.alert(
+        "Внимание",
+        "Обнаружен активный VPN. Для корректного теста отключите VPN. Продолжить?",
+        [
+          { text: "Отмена", style: "cancel" },
+          {
+            text: "Продолжить",
+            onPress: () => runTest(),
+          },
+        ],
+      );
+      return;
+    }
+
     // Предупреждение если не мобильный интернет
-    if (!networkInfo.isCellular) {
+    if (notCellular) {
       Alert.alert(
         "Внимание",
         "Для корректного теста подключитесь к мобильному интернету и отключите WiFi. Продолжить?",
@@ -34,7 +70,7 @@ export default function HomeScreen() {
     }
 
     await runTest();
-  }, [networkInfo.isCellular]);
+  }, [networkInfo.isCellular, networkInfo.isWifi, networkInfo.isVpn]);
 
   const runTest = async () => {
     setIsTesting(true);

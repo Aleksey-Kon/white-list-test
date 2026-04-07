@@ -1,12 +1,14 @@
 import * as Cellular from "expo-cellular";
 import * as Network from "expo-network";
 import { useEffect, useState } from "react";
+import { isVpnActive } from "react-native-vpn-detector";
 
 export interface NetworkInfo {
   type: string;
   isConnected: boolean;
   isWifi: boolean;
   isCellular: boolean;
+  isVpn: boolean;
   ssid?: string;
   carrier?: string;
 }
@@ -17,6 +19,7 @@ export function useNetworkInfo() {
     isConnected: false,
     isWifi: false,
     isCellular: false,
+    isVpn: false,
   });
 
   const fetchNetworkInfo = async () => {
@@ -65,6 +68,7 @@ export function useNetworkInfo() {
         isConnected: networkState.isConnected || false,
         isWifi,
         isCellular,
+        isVpn: isVpnActive(),
         ssid,
         carrier,
       });
@@ -75,6 +79,7 @@ export function useNetworkInfo() {
         isConnected: false,
         isWifi: false,
         isCellular: false,
+        isVpn: false,
       });
     }
   };

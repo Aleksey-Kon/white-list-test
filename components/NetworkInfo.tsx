@@ -32,14 +32,6 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
         </ThemedText>
       </View>
 
-      {/*{networkInfo.isCellular && (
-        <View style={styles.warningRow}>
-          <ThemedText style={styles.warningText}>
-            ✅ Тестирование через мобильный интернет
-          </ThemedText>
-        </View>
-      )}*/}
-
       {networkInfo.carrier && (
         <View style={styles.infoRow}>
           <ThemedText style={styles.label}>Сеть:</ThemedText>
@@ -50,7 +42,15 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
       {networkInfo.isWifi && (
         <View style={styles.warningRow}>
           <ThemedText style={styles.warningText}>
-            ⚠️ Для теста отключите WiFi и VPN и используйте мобильный интернет
+            ⚠️ Для теста отключите WiFi и используйте мобильный интернет
+          </ThemedText>
+        </View>
+      )}
+
+      {networkInfo.isVpn && (
+        <View style={styles.warningRow}>
+          <ThemedText style={styles.warningText}>
+            ⚠️ Обнаружен активный VPN. Для корректной работы отключите VPN
           </ThemedText>
         </View>
       )}

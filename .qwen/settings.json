@@ -5,7 +5,9 @@
       "Bash(npm run *)",
       "Bash(del *)",
       "Bash(rmdir *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "Bash(npm *)"
     ]
   },
   "$version": 3
