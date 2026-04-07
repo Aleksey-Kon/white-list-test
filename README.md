@@ -26,6 +26,8 @@
 
 ```bash
 git clone https://github.com/Aleksey-Kon/white-list-test.git
+```
+```bash
 cd testwhitelist
 ```
 
