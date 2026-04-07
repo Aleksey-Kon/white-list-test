@@ -20,12 +20,12 @@
 
 Все релизы доступны в разделе [Releases](../../releases).
 
-## 📦 Установка
+## 📦 Развертывание
 
 1. Клонируйте репозиторий:
 
 ```bash
-git clone <URL_РЕПОЗИТОРИЯ>
+git clone https://github.com/Aleksey-Kon/white-list-test.git
 cd testwhitelist
 ```
 
