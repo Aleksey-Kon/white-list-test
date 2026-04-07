@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NetworkInfoDisplay } from "@/components/NetworkInfo";
 import { Results } from "@/components/Results";
@@ -13,6 +14,7 @@ export default function HomeScreen() {
   const networkInfo = useNetworkInfo();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const insets = useSafeAreaInsets();
 
   const handleTest = useCallback(async () => {
     // Предупреждение если не мобильный интернет
@@ -50,7 +52,17 @@ export default function HomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        },
+      ]}
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -87,7 +99,7 @@ const styles = StyleSheet.create({
   },
   header: {
     textAlign: "center",
-    marginTop: 45,
+    marginTop: 24,
     marginBottom: 8,
   },
   description: {
