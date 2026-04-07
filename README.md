@@ -70,11 +70,11 @@ testwhitelist/
 ## 📸 Скриншоты
 
 <p align="center">
-  <img src="./assets/2.png" alt="Главный экран" width="250" />
+  <img src="./.assets/2.png" alt="Главный экран" width="250" />
 </p>
 
 <p align="center">
-  <img src="./assets/3.png" alt="Главный экран" width="250" />
+  <img src="./.assets/3.png" alt="Главный экран" width="250" />
 </p>
 
 ## 🤝 Вклад
