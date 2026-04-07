@@ -49,6 +49,7 @@ export const NEUTRAL_SITES = [
   "https://google.com",
   "https://amazon.com",
   "https://vercel.com",
+  "https://2ip.io",
 ];
 
 export interface SiteResult {
@@ -68,28 +69,81 @@ export interface TestResult {
 const PING_TIMEOUT = 5000; // 5 секунд
 
 /**
- * Проверяет доступность сайта через HTTP запрос
+ * Преобразует URL домена в URL для "ping" проверки (favicon)
+ */
+function getPingUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // Пытаемся загрузить favicon — это маленький и быстрый запрос
+    return `${urlObj.origin}/favicon.ico`;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Проверяет доступность сайта через "ping" запрос (загрузка favicon)
+ * Если favicon недоступен, fallback на обычный HTTP запрос
  */
 export async function pingSite(url: string): Promise<SiteResult> {
   const startTime = Date.now();
+  const pingUrl = getPingUrl(url);
 
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PING_TIMEOUT);
 
-    const response = await fetch(url, {
-      method: "HEAD",
-      signal: controller.signal,
-      cache: "no-store",
-    });
+    // Пробуем загрузить favicon (как ping)
+    let response: Response;
+    try {
+      response = await fetch(pingUrl, {
+        method: "GET",
+        signal: controller.signal,
+        cache: "no-store",
+        redirect: "follow",
+      });
+    } catch {
+      // Если favicon не загрузился, пробуем HEAD запрос к основному URL
+      const controller2 = new AbortController();
+      const timeoutId2 = setTimeout(() => controller2.abort(), PING_TIMEOUT);
+
+      try {
+        response = await fetch(url, {
+          method: "HEAD",
+          signal: controller2.signal,
+          cache: "no-store",
+          redirect: "follow",
+        });
+      } catch {
+        // Если HEAD не сработал, пробуем GET
+        const controller3 = new AbortController();
+        const timeoutId3 = setTimeout(() => controller3.abort(), PING_TIMEOUT);
+
+        response = await fetch(url, {
+          method: "GET",
+          signal: controller3.signal,
+          cache: "no-store",
+          redirect: "follow",
+        });
+
+        clearTimeout(timeoutId3);
+      }
+
+      clearTimeout(timeoutId2);
+    }
 
     clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
 
+    // Для favicon даже 404 означает что сервер доступен (просто нет файла)
+    const isPingCheck = pingUrl.includes("/favicon.ico");
+    const isAccessible = isPingCheck
+      ? response.status < 500 // Любые ответы кроме серверных ошибок = доступен
+      : response.ok || response.status === 301 || response.status === 302;
+
     return {
       url,
-      accessible:
-        response.ok || response.status === 301 || response.status === 302,
+      accessible: isAccessible,
       responseTime,
     };
   } catch (error) {
