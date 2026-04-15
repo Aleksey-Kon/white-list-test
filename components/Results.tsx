@@ -55,18 +55,26 @@ export function Results({ result }: ResultsProps) {
         <ThemedText type="defaultSemiBold" style={styles.mainResultTitle}>
           Результат теста
         </ThemedText>
-        <View
-          style={[
-            styles.statusBadge,
-            result.hasWhitelist ? styles.whitelistDetected : styles.noWhitelist,
-          ]}
-        >
-          <ThemedText style={styles.statusText}>
-            {result.hasWhitelist
-              ? "⚠️ Обнаружены белые списки!"
-              : "✅ Белые списки не обнаружены"}
-          </ThemedText>
-        </View>
+        {result.noInternet ? (
+          <View style={[styles.statusBadge, styles.noInternetBadge]}>
+            <ThemedText style={styles.statusText}>❌ Нет интернета</ThemedText>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.statusBadge,
+              result.hasWhitelist
+                ? styles.whitelistDetected
+                : styles.noWhitelist,
+            ]}
+          >
+            <ThemedText style={styles.statusText}>
+              {result.hasWhitelist
+                ? "⚠️ Обнаружены белые списки!"
+                : "✅ Белые списки не обнаружены"}
+            </ThemedText>
+          </View>
+        )}
         <ThemedText style={styles.timestamp}>
           {result.timestamp.toLocaleString("ru-RU")}
         </ThemedText>
@@ -175,6 +183,9 @@ const styles = StyleSheet.create({
   },
   noWhitelist: {
     backgroundColor: "rgba(76, 175, 80, 0.2)",
+  },
+  noInternetBadge: {
+    backgroundColor: "rgba(158, 158, 158, 0.3)",
   },
   statusText: {
     fontSize: 16,

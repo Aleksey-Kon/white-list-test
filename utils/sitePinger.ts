@@ -63,6 +63,7 @@ export interface TestResult {
   russianResults: SiteResult[];
   neutralResults: SiteResult[];
   hasWhitelist: boolean;
+  noInternet: boolean;
   timestamp: Date;
 }
 
@@ -183,11 +184,20 @@ export async function runFullTest(): Promise<TestResult> {
   const inaccessiblePercent = neutralInaccessible / neutralResults.length;
   const hasWhitelist = inaccessiblePercent > 0.7;
 
+  // Определяем отсутствие интернета: если 0 из всех сайтов доступны
+  const totalAccessible = [
+    ...whitelistResults,
+    ...russianResults,
+    ...neutralResults,
+  ].filter((r) => r.accessible).length;
+  const noInternet = totalAccessible === 0;
+
   return {
     whitelistResults,
     russianResults,
     neutralResults,
     hasWhitelist,
+    noInternet,
     timestamp: new Date(),
   };
 }
