@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Alert, ScrollView, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
@@ -14,9 +14,14 @@ import { runFullTest, TestResult } from "@/utils/sitePinger";
 
 export default function HomeScreen() {
   const networkInfo = useNetworkInfo();
-  const { isEnabled: isMonitorEnabled, toggleMonitor } = useBackgroundMonitor();
+  const {
+    isEnabled: isMonitorEnabled,
+    toggleMonitor,
+    testBackgroundTask,
+  } = useBackgroundMonitor();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [isTestingBackground, setIsTestingBackground] = useState(false);
   const insets = useSafeAreaInsets();
 
   const handleTest = useCallback(async () => {
@@ -90,6 +95,29 @@ export default function HomeScreen() {
     }
   };
 
+  const handleTestBackground = useCallback(async () => {
+    setIsTestingBackground(true);
+    try {
+      const result = await testBackgroundTask();
+      if (result.error) {
+        Alert.alert("Ошибка", `Ошибка при тестировании: ${result.error}`);
+      } else if (result.skipped) {
+        Alert.alert("Пропущено", `Тест пропущен: ${result.reason}`);
+      } else {
+        const message = `Результат: ${result.hasWhitelist ? "Обнаружен белый список" : "Белый список не обнаружен"}\nДоступно сайтов: ${result.accessibleCount}/${result.totalSites}\nУведомление отправлено`;
+        Alert.alert("Результат теста фоновой проверки", message);
+      }
+    } catch (error) {
+      console.error("Background test error:", error);
+      Alert.alert(
+        "Ошибка",
+        "Произошла ошибка при тестировании фоновой проверки",
+      );
+    } finally {
+      setIsTestingBackground(false);
+    }
+  }, [testBackgroundTask]);
+
   return (
     <ThemedView
       style={[
@@ -124,6 +152,30 @@ export default function HomeScreen() {
           onToggle={toggleMonitor}
         />
 
+        {/* Тест фоновой проверки */}
+        <ThemedView style={styles.testBackgroundContainer}>
+          <TouchableOpacity
+            style={[
+              styles.testBackgroundButton,
+              isTestingBackground && styles.testBackgroundButtonDisabled,
+            ]}
+            onPress={handleTestBackground}
+            disabled={isTestingBackground}
+            activeOpacity={0.7}
+          >
+            <ThemedText
+              style={[
+                styles.testBackgroundText,
+                isTestingBackground && styles.testBackgroundTextDisabled,
+              ]}
+            >
+              {isTestingBackground
+                ? "Тестирование..."
+                : "Тест фоновой проверки"}
+            </ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+
         {/* Кнопка теста */}
         <TestButton onPress={handleTest} isTesting={isTesting} />
 
@@ -152,5 +204,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 16,
     opacity: 0.7,
+  },
+  testBackgroundContainer: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+  },
+  testBackgroundButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  testBackgroundButtonDisabled: {
+    backgroundColor: "#CCCCCC",
+  },
+  testBackgroundText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  testBackgroundTextDisabled: {
+    color: "#999999",
   },
 });

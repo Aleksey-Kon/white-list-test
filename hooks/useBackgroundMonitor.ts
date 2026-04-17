@@ -56,20 +56,25 @@ TaskManager.defineTask(BACKGROUND_MONITOR_TASK, async () => {
     // Сохраняем новое состояние
     await AsyncStorage.setItem(STORAGE_KEY_HAS_WHITELIST, String(hasWhitelist));
 
-    // Отправляем уведомление только если:
-    // - раньше не было белого списка, теперь есть
-    if (!previousWhitelist && hasWhitelist) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "⚠️ Обнаружен белый список",
-          body: "Приложение обнаружило наличие белых списков на вашем устройстве.",
-          data: { hasWhitelist: true },
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
+    // Отправляем уведомление всегда (если не пропущено)
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: hasWhitelist
+          ? "⚠️ Обнаружен белый список"
+          : "✅ Белый список не обнаружен",
+        body: hasWhitelist
+          ? "Приложение обнаружило наличие белых списков на вашем устройстве."
+          : `Проверка завершена. Доступно сайтов: ${accessibleCount}/${OPTIMIZED_NEUTRAL_SITES.length}`,
+        data: {
+          hasWhitelist,
+          accessibleCount,
+          totalSites: OPTIMIZED_NEUTRAL_SITES.length,
         },
-        trigger: null, // Немедленно
-      });
-    }
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: null, // Немедленно
+    });
 
     console.log(
       `[BackgroundMonitor] Check: ${hasWhitelist ? "whitelist" : "no whitelist"} (${accessibleCount}/${OPTIMIZED_NEUTRAL_SITES.length} accessible)`,
@@ -179,8 +184,91 @@ export function useBackgroundMonitor() {
     }
   };
 
+  // Функция для тестирования фоновой задачи (выполняет ту же логику)
+  const testBackgroundTask = async () => {
+    try {
+      console.log("[TestBackground] Starting test...");
+
+      // Проверяем сеть (VPN/WiFi)
+      const Network = await import("expo-network");
+      const { isVpnActive } = await import("react-native-vpn-detector");
+
+      const networkState = await Network.getNetworkStateAsync();
+      const isVpn = isVpnActive();
+      const isWifi = networkState.type === Network.NetworkStateType.WIFI;
+
+      // Если VPN или WiFi - пропускаем проверку
+      if (isVpn || isWifi) {
+        console.log("[TestBackground] Skipped: VPN or WiFi detected");
+        return { skipped: true, reason: "VPN or WiFi detected" };
+      }
+
+      // Проверяем только часть нейтральных сайтов для оптимизации
+      const OPTIMIZED_NEUTRAL_SITES = [
+        "https://github.com",
+        "https://google.com",
+        "https://2ip.io",
+      ];
+
+      const results = await Promise.all(
+        OPTIMIZED_NEUTRAL_SITES.map((url) => pingSite(url)),
+      );
+
+      const accessibleCount = results.filter((r) => r.accessible).length;
+      const hasWhitelist = accessibleCount === 0; // Если все недоступны = белый список
+
+      // Получаем предыдущее состояние
+      const previousHasWhitelist = await AsyncStorage.getItem(
+        STORAGE_KEY_HAS_WHITELIST,
+      );
+      const previousWhitelist = previousHasWhitelist === "true";
+
+      // Сохраняем новое состояние
+      await AsyncStorage.setItem(
+        STORAGE_KEY_HAS_WHITELIST,
+        String(hasWhitelist),
+      );
+
+      // Отправляем уведомление всегда при тесте (если не пропущено)
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: hasWhitelist
+            ? "⚠️ Обнаружен белый список"
+            : "✅ Белый список не обнаружен",
+          body: hasWhitelist
+            ? "Приложение обнаружило наличие белых списков на вашем устройстве."
+            : `Проверка завершена. Доступно сайтов: ${accessibleCount}/${OPTIMIZED_NEUTRAL_SITES.length}`,
+          data: {
+            hasWhitelist,
+            accessibleCount,
+            totalSites: OPTIMIZED_NEUTRAL_SITES.length,
+          },
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: null, // Немедленно
+      });
+
+      console.log(
+        `[TestBackground] Check: ${hasWhitelist ? "whitelist" : "no whitelist"} (${accessibleCount}/${OPTIMIZED_NEUTRAL_SITES.length} accessible)`,
+      );
+
+      return {
+        skipped: false,
+        hasWhitelist,
+        accessibleCount,
+        totalSites: OPTIMIZED_NEUTRAL_SITES.length,
+        notificationSent: true,
+      };
+    } catch (error) {
+      console.error("[TestBackground] Error:", error);
+      return { error: String(error) };
+    }
+  };
+
   return {
     isEnabled,
     toggleMonitor,
+    testBackgroundTask,
   };
 }
