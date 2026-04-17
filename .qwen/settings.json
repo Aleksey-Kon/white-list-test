@@ -10,5 +10,35 @@
       "Bash(npm *)"
     ]
   },
-  "$version": 3
+  "env": {
+    "SCITELY_API_KEY": "sk-scitely-f4bfed2f12ef530b5860971467b38df5a3d8e62378bd2666e25ea9a81780a48f"
+  },
+  "modelProviders": {
+    "openai": [
+      {
+        "id": "qwen3-32b",
+        "name": "Qwen3-32B (Scitely)",
+        "description": "Qwen3 32B via Scitely API",
+        "envKey": "SCITELY_API_KEY",
+        "baseUrl": "https://api.scitely.com/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "maxRetries": 3,
+          "samplingParams": {
+            "temperature": 0.7,
+            "max_tokens": 4096
+          }
+        }
+      }
+    ]
+  },
+  "$version": 3,
+  "model": {
+    "name": "qwen3-32b"
+  },
+  "security": {
+    "auth": {
+      "selectedType": "openai"
+    }
+  }
 }

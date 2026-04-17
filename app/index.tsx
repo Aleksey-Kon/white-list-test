@@ -2,16 +2,19 @@ import React, { useCallback, useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
 import { NetworkInfoDisplay } from "@/components/NetworkInfo";
 import { Results } from "@/components/Results";
 import { TestButton } from "@/components/TestButton";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
 
 export default function HomeScreen() {
   const networkInfo = useNetworkInfo();
+  const { isEnabled: isMonitorEnabled, toggleMonitor } = useBackgroundMonitor();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const insets = useSafeAreaInsets();
@@ -114,6 +117,12 @@ export default function HomeScreen() {
 
         {/* Информация о сети */}
         <NetworkInfoDisplay networkInfo={networkInfo} />
+
+        {/* Фоновый мониторинг */}
+        <BackgroundMonitorToggle
+          isEnabled={isMonitorEnabled}
+          onToggle={toggleMonitor}
+        />
 
         {/* Кнопка теста */}
         <TestButton onPress={handleTest} isTesting={isTesting} />

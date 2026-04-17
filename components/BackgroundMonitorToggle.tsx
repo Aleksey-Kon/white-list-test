@@ -1,0 +1,114 @@
+import React from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+
+interface BackgroundMonitorToggleProps {
+  isEnabled: boolean;
+  onToggle: () => void;
+}
+
+export function BackgroundMonitorToggle({ isEnabled, onToggle }: BackgroundMonitorToggleProps) {
+  return (
+    <ThemedView style={styles.container}>
+      <TouchableOpacity
+        style={styles.toggleRow}
+        onPress={onToggle}
+        activeOpacity={0.7}
+      >
+        <View style={styles.leftContent}>
+          <View style={[styles.iconContainer, isEnabled && styles.iconContainerActive]}>
+            <IconSymbol
+              name={isEnabled ? "bell.fill" : "bell"}
+              size={20}
+              color={isEnabled ? "#FFFFFF" : "#666"}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <ThemedText type="defaultSemiBold" style={styles.title}>
+              Фоновый мониторинг
+            </ThemedText>
+            <ThemedText style={styles.description}>
+              {isEnabled
+                ? 'Включён — проверка каждые 5 минут'
+                : 'Выключен — нажмите для включения'}
+            </ThemedText>
+          </View>
+        </View>
+
+        <View style={[styles.toggleSwitch, isEnabled && styles.toggleSwitchActive]}>
+          <View style={[styles.toggleKnob, isEnabled && styles.toggleKnobActive]} />
+        </View>
+      </TouchableOpacity>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    marginHorizontal: 24,
+    marginVertical: 12,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  leftContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  iconContainerActive: {
+    backgroundColor: '#4CAF50',
+  },
+  textContainer: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 16,
+  },
+  description: {
+    fontSize: 13,
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  toggleSwitch: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#CCC',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  toggleSwitchActive: {
+    backgroundColor: '#4CAF50',
+  },
+  toggleKnob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleKnobActive: {
+    alignSelf: 'flex-end',
+  },
+});
