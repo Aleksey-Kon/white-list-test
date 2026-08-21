@@ -12,7 +12,7 @@ const STORAGE_KEY_INTERVAL = "background-monitor-interval-minutes";
 const STORAGE_KEY_HAS_WHITELIST = "last-whitelist-state";
 const DEFAULT_INTERVAL_MINUTES = 15;
 const OPTIMIZED_NEUTRAL_SITES = [
-  "https://github.com",
+  "https://gitlab.com",
   "https://google.com",
   "https://2ip.io",
 ];
@@ -32,18 +32,25 @@ async function performWhitelistCheck(notifyOnlyOnChange: boolean) {
   const accessibleCount = results.filter((result) => result.accessible).length;
   const hasWhitelist = accessibleCount === 0;
   const previousValue = await AsyncStorage.getItem(STORAGE_KEY_HAS_WHITELIST);
-  const stateChanged = previousValue !== null && previousValue !== String(hasWhitelist);
+  const stateChanged =
+    previousValue !== null && previousValue !== String(hasWhitelist);
 
   await AsyncStorage.setItem(STORAGE_KEY_HAS_WHITELIST, String(hasWhitelist));
 
   if (!notifyOnlyOnChange || stateChanged) {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: hasWhitelist ? "⚠️ Белый список включён" : "✅ Белый список выключен",
+        title: hasWhitelist
+          ? "⚠️ Белый список включён"
+          : "✅ Белый список выключен",
         body: hasWhitelist
           ? "Доступ к нейтральным сайтам пропал. Обнаружен белый список."
           : `Доступ восстановлен. Доступно сайтов: ${accessibleCount}/${OPTIMIZED_NEUTRAL_SITES.length}.`,
-        data: { hasWhitelist, accessibleCount, totalSites: OPTIMIZED_NEUTRAL_SITES.length },
+        data: {
+          hasWhitelist,
+          accessibleCount,
+          totalSites: OPTIMIZED_NEUTRAL_SITES.length,
+        },
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
@@ -93,7 +100,9 @@ async function registerMonitorTask(intervalMinutes: number) {
 
 export function useBackgroundMonitor() {
   const [isEnabled, setIsEnabled] = useState(false);
-  const [intervalMinutes, setIntervalMinutesState] = useState(DEFAULT_INTERVAL_MINUTES);
+  const [intervalMinutes, setIntervalMinutesState] = useState(
+    DEFAULT_INTERVAL_MINUTES,
+  );
   const [isLoaded, setIsLoaded] = useState(false);
   const registrationQueue = useRef(Promise.resolve());
 
@@ -106,9 +115,11 @@ export function useBackgroundMonitor() {
         ]);
         const parsedInterval = Number(savedInterval);
         setIsEnabled(enabled === "true");
-        setIntervalMinutesState(savedInterval !== null && Number.isFinite(parsedInterval)
-          ? Math.min(30, Math.max(5, Math.round(parsedInterval)))
-          : DEFAULT_INTERVAL_MINUTES);
+        setIntervalMinutesState(
+          savedInterval !== null && Number.isFinite(parsedInterval)
+            ? Math.min(30, Math.max(5, Math.round(parsedInterval)))
+            : DEFAULT_INTERVAL_MINUTES,
+        );
       } catch (error) {
         console.error("Failed to load monitor settings:", error);
       } finally {
@@ -179,5 +190,11 @@ export function useBackgroundMonitor() {
     }
   }, []);
 
-  return { isEnabled, intervalMinutes, setIntervalMinutes, toggleMonitor, testBackgroundTask };
+  return {
+    isEnabled,
+    intervalMinutes,
+    setIntervalMinutes,
+    toggleMonitor,
+    testBackgroundTask,
+  };
 }
