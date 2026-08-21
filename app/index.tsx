@@ -16,6 +16,8 @@ export default function HomeScreen() {
   const networkInfo = useNetworkInfo();
   const {
     isEnabled: isMonitorEnabled,
+    intervalMinutes,
+    setIntervalMinutes,
     toggleMonitor,
     testBackgroundTask,
   } = useBackgroundMonitor();
@@ -99,7 +101,7 @@ export default function HomeScreen() {
     setIsTestingBackground(true);
     try {
       const result = await testBackgroundTask();
-      if (result.error) {
+      if ("error" in result) {
         Alert.alert("Ошибка", `Ошибка при тестировании: ${result.error}`);
       } else if (result.skipped) {
         Alert.alert("Пропущено", `Тест пропущен: ${result.reason}`);
@@ -149,8 +151,16 @@ export default function HomeScreen() {
         {/* Фоновый мониторинг */}
         <BackgroundMonitorToggle
           isEnabled={isMonitorEnabled}
+          intervalMinutes={intervalMinutes}
+          onIntervalChange={setIntervalMinutes}
           onToggle={toggleMonitor}
         />
+
+        <ThemedView style={styles.batteryWarning}>
+          <ThemedText style={styles.batteryWarningText}>
+            ⚠️ Частые фоновые проверки могут быстрее расходовать заряд батареи.
+          </ThemedText>
+        </ThemedView>
 
         {/* Тест фоновой проверки */}
         <ThemedView style={styles.testBackgroundContainer}>
@@ -208,6 +218,18 @@ const styles = StyleSheet.create({
   testBackgroundContainer: {
     marginHorizontal: 24,
     marginBottom: 16,
+  },
+  batteryWarning: {
+    marginHorizontal: 24,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 152, 0, 0.12)",
+  },
+  batteryWarningText: {
+    color: "#FF9800",
+    fontSize: 13,
+    textAlign: "center",
   },
   testBackgroundButton: {
     backgroundColor: "#007AFF",
