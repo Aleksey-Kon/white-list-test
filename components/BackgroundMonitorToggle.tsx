@@ -1,7 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import React, { useState } from 'react';
+import { MAX_INTERVAL_MINUTES, MIN_INTERVAL_MINUTES } from '@/utils/backgroundMonitorPolicy';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface BackgroundMonitorToggleProps {
@@ -9,28 +10,47 @@ interface BackgroundMonitorToggleProps {
   intervalMinutes: number;
   onIntervalChange: (minutes: number) => void;
   onToggle: () => void;
+  disabled: boolean;
+  isTestEnabled: boolean;
 }
 
-const MIN_INTERVAL = 5;
-const MAX_INTERVAL = 30;
+const MIN_INTERVAL = MIN_INTERVAL_MINUTES;
+const MAX_INTERVAL = MAX_INTERVAL_MINUTES;
 
 export function BackgroundMonitorToggle({
   isEnabled,
   intervalMinutes,
   onIntervalChange,
   onToggle,
+  disabled,
+  isTestEnabled,
 }: BackgroundMonitorToggleProps) {
   const [sliderWidth, setSliderWidth] = useState(1);
-  const progress = (intervalMinutes - MIN_INTERVAL) / (MAX_INTERVAL - MIN_INTERVAL);
+  const [draftInterval, setDraftInterval] = useState(intervalMinutes);
+  const draft = useRef(intervalMinutes);
+  const intervalEnabled = (isEnabled || isTestEnabled) && !disabled;
+  const progress = (draftInterval - MIN_INTERVAL) / (MAX_INTERVAL - MIN_INTERVAL);
+
+  useEffect(() => {
+    draft.current = intervalMinutes;
+    setDraftInterval(intervalMinutes);
+  }, [intervalMinutes, disabled]);
 
   const updateInterval = (locationX: number) => {
     const ratio = Math.min(1, Math.max(0, locationX / sliderWidth));
-    onIntervalChange(MIN_INTERVAL + Math.round(ratio * (MAX_INTERVAL - MIN_INTERVAL)));
+    draft.current = MIN_INTERVAL + Math.round(ratio * (MAX_INTERVAL - MIN_INTERVAL));
+    setDraftInterval(draft.current);
+  };
+
+  const commitInterval = () => {
+    if (intervalEnabled && draft.current !== intervalMinutes) onIntervalChange(draft.current);
   };
 
   return (
     <ThemedView style={styles.container}>
-      <TouchableOpacity style={styles.toggleRow} onPress={onToggle} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.toggleRow} onPress={onToggle} activeOpacity={0.7}
+        disabled={disabled} accessibilityRole="switch"
+        accessibilityState={{ checked: isEnabled, disabled }} accessibilityLabel="Фоновый мониторинг">
         <View style={styles.leftContent}>
           <View style={[styles.iconContainer, isEnabled && styles.iconContainerActive]}>
             <IconSymbol
@@ -43,7 +63,7 @@ export function BackgroundMonitorToggle({
             <ThemedText type="defaultSemiBold" style={styles.title}>Фоновый мониторинг</ThemedText>
             <ThemedText style={styles.description}>
               {isEnabled
-                ? `Включён — проверка каждые ${intervalMinutes} мин.`
+                ? `Включён — интервал от ${intervalMinutes} мин.`
                 : 'Выключен — нажмите для включения'}
             </ThemedText>
           </View>
@@ -53,26 +73,39 @@ export function BackgroundMonitorToggle({
         </View>
       </TouchableOpacity>
 
-      <View style={[styles.intervalContainer, !isEnabled && styles.disabled]}>
+      <View style={[styles.intervalContainer, !intervalEnabled && styles.disabled]}>
         <View style={styles.intervalHeader}>
           <ThemedText style={styles.intervalLabel}>Интервал проверки</ThemedText>
-          <ThemedText type="defaultSemiBold">{intervalMinutes} мин.</ThemedText>
+          <ThemedText type="defaultSemiBold">{draftInterval} мин.</ThemedText>
         </View>
         <View
           style={styles.sliderTouchArea}
           onLayout={(event) => setSliderWidth(event.nativeEvent.layout.width)}
-          onStartShouldSetResponder={() => isEnabled}
-          onMoveShouldSetResponder={() => isEnabled}
+          accessible
+          accessibilityRole="adjustable"
+          accessibilityLabel="Минимальный интервал фоновой проверки"
+          accessibilityState={{ disabled: !intervalEnabled }}
+          accessibilityValue={{ min: MIN_INTERVAL, max: MAX_INTERVAL, now: draftInterval }}
+          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+          onAccessibilityAction={(event) => {
+            if (intervalEnabled) onIntervalChange(Math.max(MIN_INTERVAL, Math.min(MAX_INTERVAL,
+              intervalMinutes + (event.nativeEvent.actionName === 'increment' ? 1 : -1))));
+          }}
+          onStartShouldSetResponder={() => intervalEnabled}
+          onMoveShouldSetResponder={() => intervalEnabled}
           onResponderGrant={(event) => updateInterval(event.nativeEvent.locationX)}
           onResponderMove={(event) => updateInterval(event.nativeEvent.locationX)}
+          onResponderRelease={commitInterval}
+          onResponderTerminate={commitInterval}
+          onResponderTerminationRequest={() => false}
         >
-          <View style={styles.sliderTrack}>
+          <View style={styles.sliderTrack} pointerEvents="none">
             <View style={[styles.sliderFill, { width: `${progress * 100}%` }]} />
             <View style={[styles.sliderThumb, { left: `${progress * 100}%` }]} />
           </View>
         </View>
         <View style={styles.rangeLabels}>
-          <ThemedText style={styles.rangeText}>5 мин.</ThemedText>
+          <ThemedText style={styles.rangeText}>{MIN_INTERVAL} мин.</ThemedText>
           <ThemedText style={styles.rangeText}>30 мин.</ThemedText>
         </View>
       </View>

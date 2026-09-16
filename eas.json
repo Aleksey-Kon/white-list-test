@@ -5,6 +5,7 @@
   },
   "build": {
     "development": {
+      "env": { "APP_VARIANT": "development" },
       "developmentClient": true,
       "distribution": "internal",
       "android": {

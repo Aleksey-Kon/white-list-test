@@ -1,14 +1,19 @@
 {
   "name": "testwhitelist",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.0.0",
   "scripts": {
+    "postinstall": "patch-package --error-on-fail",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "node --test tests/*.test.cjs",
+    "typecheck": "tsc --noEmit",
+    "build:preview": "eas build --platform android --profile preview",
+    "build:development": "eas build --platform android --profile development",
     "build": "eas build --platform android --profile production",
     "debug": "npx expo prebuild --platform android && cd android && gradlew assembleDebug",
     "release": "npx expo prebuild --platform android && cd android && gradlew assembleRelease"
@@ -20,7 +25,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "expo": "~54.0.37",
-    "expo-background-fetch": "~14.0.9",
+    "expo-background-task": "~1.0.10",
     "expo-build-properties": "~1.0.10",
     "expo-cellular": "~8.0.8",
     "expo-constants": "~18.0.14",
@@ -53,7 +58,15 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": ["expo-task-manager", "unimodules-app-loader", "expo-background-task"]
+      }
+    }
   },
   "private": true
 }

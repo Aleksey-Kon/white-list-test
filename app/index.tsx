@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Alert, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { Alert, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
@@ -12,18 +12,24 @@ import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
 
+const SHOW_BACKGROUND_TEST = true;
+
 export default function HomeScreen() {
   const networkInfo = useNetworkInfo();
   const {
     isEnabled: isMonitorEnabled,
+    isTestEnabled: isBackgroundTestEnabled,
     intervalMinutes,
     setIntervalMinutes,
     toggleMonitor,
-    testBackgroundTask,
+    toggleBackgroundTest,
+    isBusy: isMonitorBusy,
+    isRegistered,
+    lastRun,
+    error: monitorError,
   } = useBackgroundMonitor();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
-  const [isTestingBackground, setIsTestingBackground] = useState(false);
   const insets = useSafeAreaInsets();
 
   const handleTest = useCallback(async () => {
@@ -97,29 +103,6 @@ export default function HomeScreen() {
     }
   };
 
-  const handleTestBackground = useCallback(async () => {
-    setIsTestingBackground(true);
-    try {
-      const result = await testBackgroundTask();
-      if ("error" in result) {
-        Alert.alert("Ошибка", `Ошибка при тестировании: ${result.error}`);
-      } else if (result.skipped) {
-        Alert.alert("Пропущено", `Тест пропущен: ${result.reason}`);
-      } else {
-        const message = `Результат: ${result.hasWhitelist ? "Обнаружен белый список" : "Белый список не обнаружен"}\nДоступно сайтов: ${result.accessibleCount}/${result.totalSites}\nУведомление отправлено`;
-        Alert.alert("Результат теста фоновой проверки", message);
-      }
-    } catch (error) {
-      console.error("Background test error:", error);
-      Alert.alert(
-        "Ошибка",
-        "Произошла ошибка при тестировании фоновой проверки",
-      );
-    } finally {
-      setIsTestingBackground(false);
-    }
-  }, [testBackgroundTask]);
-
   return (
     <ThemedView
       style={[
@@ -154,36 +137,43 @@ export default function HomeScreen() {
           intervalMinutes={intervalMinutes}
           onIntervalChange={setIntervalMinutes}
           onToggle={toggleMonitor}
+          disabled={isMonitorBusy}
+          isTestEnabled={isBackgroundTestEnabled}
         />
 
         <ThemedView style={styles.batteryWarning}>
           <ThemedText style={styles.batteryWarningText}>
-            ⚠️ Частые фоновые проверки могут быстрее расходовать заряд батареи.
+            Система выбирает время запуска: от {intervalMinutes} минут, иногда дольше.
+            Для проверки сайтов нужен мобильный интернет без Wi-Fi и VPN.
+            В настройках батареи разрешите приложению работу в фоне.
           </ThemedText>
         </ThemedView>
 
-        {/* Тест фоновой проверки */}
-        <ThemedView style={styles.testBackgroundContainer}>
-          <TouchableOpacity
-            style={[
-              styles.testBackgroundButton,
-              isTestingBackground && styles.testBackgroundButtonDisabled,
-            ]}
-            onPress={handleTestBackground}
-            disabled={isTestingBackground}
-            activeOpacity={0.7}
-          >
-            <ThemedText
-              style={[
-                styles.testBackgroundText,
-                isTestingBackground && styles.testBackgroundTextDisabled,
-              ]}
-            >
-              {isTestingBackground
-                ? "Тестирование..."
-                : "Тест фоновой проверки"}
-            </ThemedText>
-          </TouchableOpacity>
+        <ThemedView style={styles.monitorStatus}>
+          <ThemedText>
+            {isMonitorBusy ? "Проверяем настройки…" : isRegistered
+              ? "Фоновая задача зарегистрирована"
+              : "Фоновая задача не зарегистрирована"}
+          </ThemedText>
+          {monitorError && <ThemedText style={styles.monitorError}>{monitorError}</ThemedText>}
+          <ThemedText style={styles.monitorDetails}>
+            {lastRun
+              ? `Последний фоновый запуск: ${new Date(lastRun.startedAt).toLocaleString()}. ${lastRun.message}`
+              : "Фоновых запусков пока нет. Сверните приложение и дождитесь запуска системой."}
+          </ThemedText>
+          {lastRun?.status === "running" && (
+            <ThemedText style={styles.monitorDetails}>Завершение ещё не записано: проверка выполняется или была прервана системой.</ThemedText>
+          )}
+          {lastRun?.notification === "scheduled" && (
+            <ThemedText style={styles.monitorDetails}>Уведомление передано системе для показа.</ThemedText>
+          )}
+          {Platform.OS !== "web" && (
+            <TouchableOpacity accessibilityRole="button" onPress={() => {
+              void Linking.openSettings().catch(() => Alert.alert("Настройки", "Откройте настройки приложения вручную."));
+            }}>
+              <ThemedText type="link">Открыть настройки приложения</ThemedText>
+            </TouchableOpacity>
+          )}
         </ThemedView>
 
         {/* Кнопка теста */}
@@ -191,6 +181,27 @@ export default function HomeScreen() {
 
         {/* Результаты */}
         <Results result={testResult} />
+
+        {SHOW_BACKGROUND_TEST && (
+          <ThemedView style={styles.monitorStatus}>
+            <ThemedView style={styles.backgroundTestRow}>
+              <ThemedText style={styles.backgroundTestText}>
+                Тест фонового мониторинга
+              </ThemedText>
+              <Switch
+                value={isBackgroundTestEnabled}
+                disabled={isMonitorBusy}
+                onValueChange={toggleBackgroundTest}
+                accessibilityLabel="Тест фонового мониторинга"
+              />
+            </ThemedView>
+            <ThemedText style={styles.monitorDetails}>
+              Включите и сверните приложение: примерно через 15 секунд придёт тест доставки.
+              Затем каждый фактический фоновый запуск сообщит результат или причину пропуска,
+              даже если состояние сети не изменилось. Выключение отменяет ожидающий тест доставки.
+            </ThemedText>
+          </ThemedView>
+        )}
       </ScrollView>
     </ThemedView>
   );
@@ -215,10 +226,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     opacity: 0.7,
   },
-  testBackgroundContainer: {
+  backgroundTestRow: {
+    marginTop: 8,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backgroundTestText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  monitorStatus: {
     marginHorizontal: 24,
     marginBottom: 16,
+    gap: 8,
   },
+  monitorDetails: { fontSize: 13, opacity: 0.75 },
+  monitorError: { color: "#D84315", fontSize: 14 },
   batteryWarning: {
     marginHorizontal: 24,
     marginBottom: 12,
@@ -230,23 +255,5 @@ const styles = StyleSheet.create({
     color: "#FF9800",
     fontSize: 13,
     textAlign: "center",
-  },
-  testBackgroundButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  testBackgroundButtonDisabled: {
-    backgroundColor: "#CCCCCC",
-  },
-  testBackgroundText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  testBackgroundTextDisabled: {
-    color: "#999999",
   },
 });

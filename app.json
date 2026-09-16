@@ -14,8 +14,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
-          "fetch",
-          "remote-notification"
+          "processing"
         ]
       }
     },
@@ -31,7 +30,7 @@
       "package": "com.zvezda4443.testwhitelist",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
-        "FOREGROUND_SERVICE",
+        "ACCESS_NETWORK_STATE",
         "POST_NOTIFICATIONS"
       ]
     },
@@ -63,7 +62,8 @@
       ],
       "expo-build-properties",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,
