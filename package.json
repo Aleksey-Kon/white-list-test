@@ -16,7 +16,7 @@
     "build:development": "eas build --platform android --profile development",
     "build": "eas build --platform android --profile production",
     "debug": "npx expo prebuild --platform android && cd android && gradlew assembleDebug",
-    "release": "npx expo prebuild --platform android && cd android && gradlew assembleRelease"
+    "release": "npx expo prebuild --platform android --clean && cd android && gradlew assembleRelease"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -64,7 +64,11 @@
   "expo": {
     "autolinking": {
       "android": {
-        "buildFromSource": ["expo-task-manager", "unimodules-app-loader", "expo-background-task"]
+        "buildFromSource": [
+          "expo-task-manager",
+          "unimodules-app-loader",
+          "expo-background-task"
+        ]
       }
     }
   },

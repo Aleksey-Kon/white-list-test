@@ -60,19 +60,28 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    padding: 18,
+    marginHorizontal: 24,
     marginBottom: 16,
-    borderRadius: 12,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5EAF2",
+    shadowColor: "#102A43",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   title: {
     fontSize: 18,
-    marginBottom: 12,
-    textAlign: "center",
+    marginBottom: 14,
+    textAlign: "left",
   },
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   label: {
     fontSize: 14,
@@ -82,20 +91,23 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   connected: {
-    color: "#4CAF50",
+    color: "#16805C",
   },
   disconnected: {
-    color: "#F44336",
+    color: "#C62828",
   },
   warningRow: {
-    backgroundColor: "rgba(255, 152, 0, 0.1)",
-    padding: 8,
-    borderRadius: 8,
+    backgroundColor: "#FFF4DB",
+    padding: 10,
+    borderRadius: 12,
     marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#F2D49A",
   },
   warningText: {
     fontSize: 12,
-    color: "#FF9800",
+    color: "#8A5A00",
     textAlign: "center",
+    lineHeight: 18,
   },
 });

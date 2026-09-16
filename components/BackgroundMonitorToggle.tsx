@@ -79,7 +79,7 @@ export function BackgroundMonitorToggle({
           <ThemedText type="defaultSemiBold">{draftInterval} мин.</ThemedText>
         </View>
         <View
-          style={styles.sliderTouchArea}
+          style={[styles.sliderTouchArea, !intervalEnabled && styles.hiddenSlider]}
           onLayout={(event) => setSliderWidth(event.nativeEvent.layout.width)}
           accessible
           accessibilityRole="adjustable"
@@ -104,7 +104,7 @@ export function BackgroundMonitorToggle({
             <View style={[styles.sliderThumb, { left: `${progress * 100}%` }]} />
           </View>
         </View>
-        <View style={styles.rangeLabels}>
+        <View style={[styles.rangeLabels, !intervalEnabled && styles.hiddenSlider]}>
           <ThemedText style={styles.rangeText}>{MIN_INTERVAL} мин.</ThemedText>
           <ThemedText style={styles.rangeText}>30 мин.</ThemedText>
         </View>
@@ -114,26 +114,27 @@ export function BackgroundMonitorToggle({
 }
 
 const styles = StyleSheet.create({
-  container: { marginHorizontal: 24, marginVertical: 12, borderRadius: 12, padding: 12, backgroundColor: 'rgba(128, 128, 128, 0.1)' },
+  container: { marginHorizontal: 24, marginVertical: 12, borderRadius: 18, padding: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5EAF2', shadowColor: '#102A43', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   leftContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  iconContainer: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E0E0E0', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  iconContainer: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#E8F0FF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   iconContainerActive: { backgroundColor: '#4CAF50' },
   textContainer: { flex: 1 },
   title: { fontSize: 16 },
-  description: { fontSize: 13, opacity: 0.7, marginTop: 2 },
+  description: { fontSize: 13, opacity: 0.68, marginTop: 3 },
   toggleSwitch: { width: 50, height: 28, borderRadius: 14, backgroundColor: '#CCC', justifyContent: 'center', padding: 2 },
   toggleSwitchActive: { backgroundColor: '#4CAF50' },
   toggleKnob: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 2 },
   toggleKnobActive: { alignSelf: 'flex-end' },
-  intervalContainer: { marginTop: 16 },
+  intervalContainer: { marginTop: 18 },
   intervalHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   intervalLabel: { fontSize: 14 },
   sliderTouchArea: { height: 36, justifyContent: 'center' },
-  sliderTrack: { height: 6, borderRadius: 3, backgroundColor: '#CCC' },
+  hiddenSlider: { height: 0, opacity: 0 },
+  sliderTrack: { height: 6, borderRadius: 3, backgroundColor: '#D9E1EC' },
   sliderFill: { height: 6, borderRadius: 3, backgroundColor: '#4CAF50' },
   sliderThumb: { position: 'absolute', top: -7, width: 20, height: 20, borderRadius: 10, marginLeft: -10, backgroundColor: '#4CAF50', elevation: 3 },
   rangeLabels: { flexDirection: 'row', justifyContent: 'space-between' },
   rangeText: { fontSize: 12, opacity: 0.6 },
-  disabled: { opacity: 0.45 },
+  disabled: { opacity: 0.6 },
 });

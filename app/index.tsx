@@ -12,7 +12,7 @@ import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
 
-const SHOW_BACKGROUND_TEST = true;
+const SHOW_BACKGROUND_TEST = false;
 
 export default function HomeScreen() {
   const networkInfo = useNetworkInfo();
@@ -149,6 +149,7 @@ export default function HomeScreen() {
           </ThemedText>
         </ThemedView>
 
+        {SHOW_BACKGROUND_TEST && (
         <ThemedView style={styles.monitorStatus}>
           <ThemedText>
             {isMonitorBusy ? "Проверяем настройки…" : isRegistered
@@ -175,6 +176,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
         </ThemedView>
+        )}
 
         {/* Кнопка теста */}
         <TestButton onPress={handleTest} isTesting={isTesting} />
@@ -213,18 +215,18 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 24,
+    paddingBottom: 32,
   },
   header: {
     textAlign: "center",
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: 28,
+    marginBottom: 6,
   },
   description: {
     textAlign: "center",
     paddingHorizontal: 24,
-    marginBottom: 16,
-    opacity: 0.7,
+    marginBottom: 20,
+    opacity: 0.68,
   },
   backgroundTestRow: {
     marginTop: 8,
@@ -240,20 +242,23 @@ const styles = StyleSheet.create({
   monitorStatus: {
     marginHorizontal: 24,
     marginBottom: 16,
-    gap: 8,
+    gap: 10,
   },
-  monitorDetails: { fontSize: 13, opacity: 0.75 },
-  monitorError: { color: "#D84315", fontSize: 14 },
+  monitorDetails: { fontSize: 13, lineHeight: 19, opacity: 0.72 },
+  monitorError: { color: "#C62828", fontSize: 14, fontWeight: "600" },
   batteryWarning: {
     marginHorizontal: 24,
     marginBottom: 12,
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: "rgba(255, 152, 0, 0.12)",
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: "#FFF4DB",
+    borderWidth: 1,
+    borderColor: "#F2D49A",
   },
   batteryWarningText: {
-    color: "#FF9800",
+    color: "#8A5A00",
     fontSize: 13,
+    lineHeight: 19,
     textAlign: "center",
   },
 });

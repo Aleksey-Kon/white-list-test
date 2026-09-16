@@ -114,7 +114,10 @@ export function Results({ result }: ResultsProps) {
               onPress={() => toggleSection(key)}
               activeOpacity={0.7}
             >
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              <ThemedText
+                type="defaultSemiBold"
+                style={styles.sectionTitle}
+              >
                 {title}
               </ThemedText>
               <View style={styles.arrowContainer}>
@@ -162,34 +165,45 @@ function SiteResultRow({ site }: { site: SiteResult }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 18,
+    marginHorizontal: 24,
+    marginBottom: 16,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5EAF2",
+    shadowColor: "#102A43",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   mainResult: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 18,
   },
   mainResultTitle: {
     fontSize: 18,
     marginBottom: 12,
   },
   statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
+    borderRadius: 14,
     marginBottom: 8,
   },
   whitelistDetected: {
-    backgroundColor: "rgba(244, 67, 54, 0.2)",
+    backgroundColor: "#FDE8E7",
   },
   noWhitelist: {
-    backgroundColor: "rgba(76, 175, 80, 0.2)",
+    backgroundColor: "#E3F4EC",
   },
   noInternetBadge: {
-    backgroundColor: "rgba(158, 158, 158, 0.3)",
+    backgroundColor: "#E9EDF3",
   },
   statusText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   timestamp: {
     fontSize: 12,
@@ -205,8 +219,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
+    borderRadius: 14,
+    backgroundColor: "#F1F4F8",
   },
   statNumber: {
     fontSize: 24,
@@ -222,18 +236,23 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 8,
-    borderRadius: 8,
+    borderRadius: 14,
     overflow: "hidden",
-    backgroundColor: "rgba(128, 128, 128, 0.05)",
+    backgroundColor: "#F7F9FC",
+    borderWidth: 1,
+    borderColor: "#E8EDF4",
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 12,
+    padding: 14,
   },
   sectionTitle: {
     fontSize: 16,
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 10,
   },
   sectionArrow: {
     fontSize: 12,
@@ -242,6 +261,7 @@ const styles = StyleSheet.create({
   arrowContainer: {
     width: 24,
     height: 24,
+    flexShrink: 0,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -250,7 +270,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRightWidth: 2,
     borderBottomWidth: 2,
-    borderColor: "rgba(128, 128, 128, 0.6)",
+    borderColor: "#718096",
     transform: [{ rotate: "45deg" }],
   },
   arrowExpanded: {
@@ -266,7 +286,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(128, 128, 128, 0.2)",
+    borderBottomColor: "#E5EAF2",
   },
   siteIcon: {
     fontSize: 16,
