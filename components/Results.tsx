@@ -2,21 +2,25 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { SiteResult, TestResult } from "@/utils/sitePinger";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 interface ResultsProps {
   result: TestResult | null;
+  customSites: string[];
+  onAddCustomSite: (site: string) => Promise<boolean>;
 }
 
-type SectionKey = "whitelist" | "russian" | "neutral";
+type SectionKey = "whitelist" | "russian" | "neutral" | "custom";
 
-export function Results({ result }: ResultsProps) {
+export function Results({ result, customSites, onAddCustomSite }: ResultsProps) {
+  const [customSiteInput, setCustomSiteInput] = useState("");
   const [expandedSections, setExpandedSections] = useState<
     Record<SectionKey, boolean>
   >({
     whitelist: false,
     russian: false,
     neutral: false,
+    custom: false,
   });
 
   const toggleSection = (section: SectionKey) => {
@@ -45,6 +49,11 @@ export function Results({ result }: ResultsProps) {
       key: "neutral",
       title: "🌍 Нейтральные зарубежные сайты",
       sites: result.neutralResults,
+    },
+    {
+      key: "custom",
+      title: "🔗 Пользовательские сайты",
+      sites: result.customResults,
     },
   ];
 
@@ -139,6 +148,27 @@ export function Results({ result }: ResultsProps) {
             )}
           </View>
         ))}
+        <View style={styles.addSiteContainer}>
+          <TextInput
+            value={customSiteInput}
+            onChangeText={setCustomSiteInput}
+            placeholder="example.com"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            style={styles.addSiteInput}
+            accessibilityLabel="Адрес пользовательского сайта"
+          />
+          <TouchableOpacity
+            style={styles.addSiteButton}
+            onPress={async () => {
+              if (await onAddCustomSite(customSiteInput)) setCustomSiteInput("");
+            }}
+            activeOpacity={0.8}
+          >
+            <ThemedText style={styles.addSiteButtonText}>Добавить сайт</ThemedText>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -279,6 +309,31 @@ const styles = StyleSheet.create({
   sectionContent: {
     paddingHorizontal: 8,
     paddingBottom: 8,
+  },
+  addSiteContainer: {
+    marginTop: 8,
+    gap: 8,
+  },
+  addSiteInput: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#D5DDE8",
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    color: "#102A43",
+    fontSize: 15,
+  },
+  addSiteButton: {
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    backgroundColor: "#176B87",
+  },
+  addSiteButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   siteRow: {
     flexDirection: "row",

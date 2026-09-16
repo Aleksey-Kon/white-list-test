@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,6 +11,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
+import { loadCustomSites, normalizeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
 
 const SHOW_BACKGROUND_TEST = false;
 
@@ -30,7 +31,27 @@ export default function HomeScreen() {
   } = useBackgroundMonitor();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [customSites, setCustomSites] = useState<string[]>([]);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    void loadCustomSites().then(setCustomSites);
+  }, []);
+
+  const runTest = useCallback(async () => {
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const result = await runFullTest(customSites);
+      setTestResult(result);
+    } catch (error) {
+      console.error("Test error:", error);
+      Alert.alert("Ошибка", "Произошла ошибка во время теста");
+    } finally {
+      setIsTesting(false);
+    }
+  }, [customSites]);
 
   const handleTest = useCallback(async () => {
     const hasVpn = networkInfo.isVpn;
@@ -86,20 +107,28 @@ export default function HomeScreen() {
     }
 
     await runTest();
-  }, [networkInfo.isCellular, networkInfo.isWifi, networkInfo.isVpn]);
+  }, [networkInfo.isCellular, networkInfo.isWifi, networkInfo.isVpn, runTest]);
 
-  const runTest = async () => {
-    setIsTesting(true);
-    setTestResult(null);
+  const handleAddCustomSite = async (value: string): Promise<boolean> => {
+    const site = normalizeCustomSite(value);
+    if (!site) {
+      Alert.alert("Ошибка", "Введите корректный адрес сайта.");
+      return false;
+    }
+    if (customSites.includes(site)) {
+      Alert.alert("Сайт уже добавлен", "Этот сайт уже есть в пользовательском списке.");
+      return false;
+    }
 
+    const nextSites = [...customSites, site];
     try {
-      const result = await runFullTest();
-      setTestResult(result);
+      await saveCustomSites(nextSites);
+      setCustomSites(nextSites);
+      return true;
     } catch (error) {
-      console.error("Test error:", error);
-      Alert.alert("Ошибка", "Произошла ошибка во время теста");
-    } finally {
-      setIsTesting(false);
+      console.error("Custom site save error:", error);
+      Alert.alert("Ошибка", "Не удалось сохранить сайт в памяти телефона.");
+      return false;
     }
   };
 
@@ -182,7 +211,11 @@ export default function HomeScreen() {
         <TestButton onPress={handleTest} isTesting={isTesting} />
 
         {/* Результаты */}
-        <Results result={testResult} />
+        <Results
+          result={testResult}
+          customSites={customSites}
+          onAddCustomSite={handleAddCustomSite}
+        />
 
         {SHOW_BACKGROUND_TEST && (
           <ThemedView style={styles.monitorStatus}>

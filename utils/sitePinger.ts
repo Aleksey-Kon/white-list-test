@@ -62,6 +62,7 @@ export interface TestResult {
   whitelistResults: SiteResult[];
   russianResults: SiteResult[];
   neutralResults: SiteResult[];
+  customResults: SiteResult[];
   hasWhitelist: boolean;
   noInternet: boolean;
   timestamp: Date;
@@ -91,7 +92,10 @@ async function requestSite(url: string, method: string): Promise<Response> {
   const timeout = setTimeout(() => controller.abort(), PING_TIMEOUT);
   try {
     return await fetch(url, {
-      method, signal: controller.signal, cache: "no-store", redirect: "follow",
+      method,
+      signal: controller.signal,
+      cache: "no-store",
+      redirect: "follow",
     });
   } finally {
     clearTimeout(timeout);
@@ -124,9 +128,16 @@ export async function pingSite(url: string): Promise<SiteResult> {
 /**
  * Запускает полный тест всех сайтов
  */
-export async function runFullTest(): Promise<TestResult> {
+export async function runFullTest(
+  customSites: string[] = [],
+): Promise<TestResult> {
   // Проверяем все сайты параллельно
-  const allUrls = [...WHITELIST_RU_SITES, ...RUSSIAN_SITES, ...NEUTRAL_SITES];
+  const allUrls = [
+    ...WHITELIST_RU_SITES,
+    ...RUSSIAN_SITES,
+    ...NEUTRAL_SITES,
+    ...customSites,
+  ];
 
   const results = await Promise.all(allUrls.map(pingSite));
 
@@ -137,6 +148,10 @@ export async function runFullTest(): Promise<TestResult> {
   );
   const neutralResults = results.slice(
     WHITELIST_RU_SITES.length + RUSSIAN_SITES.length,
+    WHITELIST_RU_SITES.length + RUSSIAN_SITES.length + NEUTRAL_SITES.length,
+  );
+  const customResults = results.slice(
+    WHITELIST_RU_SITES.length + RUSSIAN_SITES.length + NEUTRAL_SITES.length,
   );
 
   // Определяем наличие белого списка
@@ -152,6 +167,7 @@ export async function runFullTest(): Promise<TestResult> {
     ...whitelistResults,
     ...russianResults,
     ...neutralResults,
+    ...customResults,
   ].filter((r) => r.accessible).length;
   const noInternet = totalAccessible === 0;
 
@@ -159,6 +175,7 @@ export async function runFullTest(): Promise<TestResult> {
     whitelistResults,
     russianResults,
     neutralResults,
+    customResults,
     hasWhitelist,
     noInternet,
     timestamp: new Date(),
