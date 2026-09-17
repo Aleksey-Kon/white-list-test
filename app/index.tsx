@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
@@ -32,7 +32,46 @@ export default function HomeScreen() {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [customSites, setCustomSites] = useState<string[]>([]);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(() => Keyboard.isVisible());
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollOffset = useRef(0);
+  const scrollOffsetBeforeKeyboard = useRef<number | null>(null);
+
+  const keepCustomSiteInputVisible = useCallback(() => {
+    if (Keyboard.isVisible() && scrollOffsetBeforeKeyboard.current !== null) {
+      // The form is at the bottom; keep both the input and its button visible.
+      scrollViewRef.current?.scrollToEnd({ animated: false });
+    }
+  }, []);
+
+  const handleCustomSiteInputFocus = useCallback(() => {
+    if (scrollOffsetBeforeKeyboard.current === null) {
+      scrollOffsetBeforeKeyboard.current = scrollOffset.current;
+    }
+    keepCustomSiteInputVisible();
+  }, [keepCustomSiteInputVisible]);
+
+  useEffect(() => {
+    // Also handle reopening the Android keyboard while the input retains focus.
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setIsKeyboardVisible(true);
+      handleCustomSiteInputFocus();
+    });
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setIsKeyboardVisible(false);
+      const previousOffset = scrollOffsetBeforeKeyboard.current;
+      scrollOffsetBeforeKeyboard.current = null;
+      if (previousOffset !== null) {
+        scrollViewRef.current?.scrollTo({ y: previousOffset, animated: false });
+      }
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [handleCustomSiteInputFocus]);
 
   useEffect(() => {
     void loadCustomSites().then(setCustomSites);
@@ -144,10 +183,22 @@ export default function HomeScreen() {
         },
       ]}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        // Android hide-event coordinates can leave a stale height reduction.
+        // Remove the height override entirely when the keyboard is hidden.
+        behavior={Platform.OS === "ios" ? "padding" : isKeyboardVisible ? "height" : undefined}
       >
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={16}
+          onLayout={keepCustomSiteInputVisible}
+          onContentSizeChange={keepCustomSiteInputVisible}
+        >
         {/* Заголовок */}
         <ThemedText type="title" style={styles.header}>
           Тест белых списков
@@ -215,6 +266,7 @@ export default function HomeScreen() {
           result={testResult}
           customSites={customSites}
           onAddCustomSite={handleAddCustomSite}
+          onCustomSiteInputFocus={handleCustomSiteInputFocus}
         />
 
         {SHOW_BACKGROUND_TEST && (
@@ -237,13 +289,17 @@ export default function HomeScreen() {
             </ThemedText>
           </ThemedView>
         )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
     flex: 1,
   },
   scrollContent: {

@@ -2,17 +2,18 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { SiteResult, TestResult } from "@/utils/sitePinger";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 interface ResultsProps {
   result: TestResult | null;
   customSites: string[];
   onAddCustomSite: (site: string) => Promise<boolean>;
+  onCustomSiteInputFocus: () => void;
 }
 
 type SectionKey = "whitelist" | "russian" | "neutral" | "custom";
 
-export function Results({ result, customSites, onAddCustomSite }: ResultsProps) {
+export function Results({ result, customSites, onAddCustomSite, onCustomSiteInputFocus }: ResultsProps) {
   const [customSiteInput, setCustomSiteInput] = useState("");
   const [expandedSections, setExpandedSections] = useState<
     Record<SectionKey, boolean>
@@ -34,6 +35,11 @@ export function Results({ result, customSites, onAddCustomSite }: ResultsProps) 
     return null;
   }
 
+  const customSiteResults = customSites.map((url) => {
+    const testedSite = result.customResults.find((site) => site.url === url);
+    return testedSite ?? { url, accessible: false, pending: true };
+  });
+
   const sections: { key: SectionKey; title: string; sites: SiteResult[] }[] = [
     {
       key: "whitelist",
@@ -53,7 +59,7 @@ export function Results({ result, customSites, onAddCustomSite }: ResultsProps) 
     {
       key: "custom",
       title: "🔗 Пользовательские сайты",
-      sites: result.customResults,
+      sites: customSiteResults,
     },
   ];
 
@@ -115,7 +121,7 @@ export function Results({ result, customSites, onAddCustomSite }: ResultsProps) 
       </View>
 
       {/* Детальные результаты - раскрывающиеся списки */}
-      <ScrollView style={styles.detailsContainer}>
+      <View>
         {sections.map(({ key, title, sites }) => (
           <View key={key} style={styles.section}>
             <TouchableOpacity
@@ -152,6 +158,7 @@ export function Results({ result, customSites, onAddCustomSite }: ResultsProps) 
           <TextInput
             value={customSiteInput}
             onChangeText={setCustomSiteInput}
+            onFocus={onCustomSiteInputFocus}
             placeholder="example.com"
             autoCapitalize="none"
             autoCorrect={false}
@@ -169,24 +176,24 @@ export function Results({ result, customSites, onAddCustomSite }: ResultsProps) 
             <ThemedText style={styles.addSiteButtonText}>Добавить сайт</ThemedText>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
     </ThemedView>
   );
 }
 
-function SiteResultRow({ site }: { site: SiteResult }) {
+function SiteResultRow({ site }: { site: SiteResult & { pending?: boolean } }) {
   return (
     <View style={styles.siteRow}>
       <ThemedText style={styles.siteIcon}>
-        {site.accessible ? "✅" : "❌"}
+        {site.pending ? "⏳" : site.accessible ? "✅" : "❌"}
       </ThemedText>
       <ThemedText
-        style={[styles.siteUrl, !site.accessible && styles.siteUrlInaccessible]}
+        style={[styles.siteUrl, !site.accessible && !site.pending && styles.siteUrlInaccessible]}
       >
         {site.url.replace("https://", "")}
       </ThemedText>
       <ThemedText style={styles.siteTime}>
-        {site.accessible && site.responseTime ? `${site.responseTime}ms` : "-"}
+        {site.pending ? "Не проверен" : site.accessible && site.responseTime ? `${site.responseTime}ms` : "-"}
       </ThemedText>
     </View>
   );
@@ -194,7 +201,6 @@ function SiteResultRow({ site }: { site: SiteResult }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 18,
     marginHorizontal: 24,
     marginBottom: 16,
@@ -260,9 +266,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     textAlign: "center",
-  },
-  detailsContainer: {
-    flex: 1,
   },
   section: {
     marginBottom: 8,

@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export const CUSTOM_SITES_STORAGE_KEY = "custom-test-sites";
 
 function normalizeSiteUrl(value: string): string | null {
-  const trimmed = value.trim();
+  const trimmed = value.trim().toLowerCase();
   if (!trimmed) return null;
 
   const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
