@@ -215,7 +215,7 @@ function SiteResultRow({
         style={[styles.siteUrl, !site.accessible && !site.pending && styles.siteUrlInaccessible,
           isDark && !site.accessible && !site.pending && darkStyles.secondaryText]}
       >
-        {site.url.replace("https://", "")}
+        {site.url.replace(/^https?:\/\//i, "")}
       </ThemedText>
       {canRemove && (
         <TouchableOpacity
@@ -225,7 +225,7 @@ function SiteResultRow({
           accessibilityRole="button"
           accessibilityLabel={`Удалить сайт ${site.url}`}
         >
-          <Ionicons name="trash-outline" size={19} color="#D64545" />
+          <Ionicons name="trash-outline" size={20} color="#D64545" />
         </TouchableOpacity>
       )}
       <ThemedText style={[styles.siteTime, isDark && darkStyles.secondaryText]}>
@@ -403,6 +403,7 @@ const styles = StyleSheet.create({
   },
   removeSiteButton: {
     width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 4,

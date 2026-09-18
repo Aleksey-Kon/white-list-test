@@ -13,6 +13,7 @@ function normalizeSiteUrl(value: string): string | null {
   try {
     const url = new URL(withProtocol);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (!/\.[^.]+$/.test(url.hostname)) return null;
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
