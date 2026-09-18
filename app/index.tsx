@@ -13,7 +13,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
-import { loadCustomSites, normalizeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
+import { loadCustomSites, normalizeCustomSite, removeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
 
 const SHOW_BACKGROUND_TEST = false;
 
@@ -174,6 +174,18 @@ export default function HomeScreen() {
     }
   };
 
+  const handleRemoveCustomSite = async (site: string): Promise<boolean> => {
+    try {
+      await removeCustomSite(site);
+      setCustomSites((currentSites) => currentSites.filter((currentSite) => currentSite !== site));
+      return true;
+    } catch (error) {
+      console.error("Custom site removal error:", error);
+      Alert.alert("Ошибка", "Не удалось удалить сайт из памяти телефона.");
+      return false;
+    }
+  };
+
   return (
     <ThemedView
       style={[
@@ -269,6 +281,7 @@ export default function HomeScreen() {
           result={testResult}
           customSites={customSites}
           onAddCustomSite={handleAddCustomSite}
+          onRemoveCustomSite={handleRemoveCustomSite}
           onCustomSiteInputFocus={handleCustomSiteInputFocus}
         />
 

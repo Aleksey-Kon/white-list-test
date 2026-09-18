@@ -41,6 +41,11 @@ export async function saveCustomSites(sites: string[]): Promise<void> {
   await AsyncStorage.setItem(CUSTOM_SITES_STORAGE_KEY, JSON.stringify(sites));
 }
 
+export async function removeCustomSite(site: string): Promise<void> {
+  const sites = await loadCustomSites();
+  await saveCustomSites(sites.filter((storedSite) => storedSite !== site));
+}
+
 export function normalizeCustomSite(value: string): string | null {
   return normalizeSiteUrl(value);
 }

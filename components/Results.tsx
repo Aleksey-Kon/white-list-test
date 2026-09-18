@@ -3,6 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { SiteResult, TestResult } from "@/utils/sitePinger";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
@@ -10,12 +11,13 @@ interface ResultsProps {
   result: TestResult | null;
   customSites: string[];
   onAddCustomSite: (site: string) => Promise<boolean>;
+  onRemoveCustomSite: (site: string) => Promise<boolean>;
   onCustomSiteInputFocus: () => void;
 }
 
 type SectionKey = "whitelist" | "russian" | "neutral" | "custom";
 
-export function Results({ result, customSites, onAddCustomSite, onCustomSiteInputFocus }: ResultsProps) {
+export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSite, onCustomSiteInputFocus }: ResultsProps) {
   const isDark = useColorScheme() === "dark";
   const [customSiteInput, setCustomSiteInput] = useState("");
   const [expandedSections, setExpandedSections] = useState<
@@ -153,7 +155,12 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
             {expandedSections[key] && (
               <View style={styles.sectionContent}>
                 {sites.map((site, index) => (
-                  <SiteResultRow key={index} site={site} />
+                  <SiteResultRow
+                    key={index}
+                    site={site}
+                    canRemove={key === "custom"}
+                    onRemove={onRemoveCustomSite}
+                  />
                 ))}
               </View>
             )}
@@ -189,7 +196,15 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
   );
 }
 
-function SiteResultRow({ site }: { site: SiteResult & { pending?: boolean } }) {
+function SiteResultRow({
+  site,
+  canRemove,
+  onRemove,
+}: {
+  site: SiteResult & { pending?: boolean };
+  canRemove: boolean;
+  onRemove: (site: string) => Promise<boolean>;
+}) {
   const isDark = useColorScheme() === "dark";
   return (
     <View style={[styles.siteRow, isDark && darkStyles.siteRow]}>
@@ -202,8 +217,19 @@ function SiteResultRow({ site }: { site: SiteResult & { pending?: boolean } }) {
       >
         {site.url.replace("https://", "")}
       </ThemedText>
+      {canRemove && (
+        <TouchableOpacity
+          style={styles.removeSiteButton}
+          onPress={() => void onRemove(site.url)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Удалить сайт ${site.url}`}
+        >
+          <Ionicons name="trash-outline" size={19} color="#D64545" />
+        </TouchableOpacity>
+      )}
       <ThemedText style={[styles.siteTime, isDark && darkStyles.secondaryText]}>
-        {site.pending ? "Не проверен" : site.accessible && site.responseTime ? `${site.responseTime}ms` : "-"}
+        {site.pending ? "" : site.accessible && site.responseTime ? `${site.responseTime}ms` : "-"}
       </ThemedText>
     </View>
   );
@@ -374,6 +400,12 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     width: 60,
     textAlign: "right",
+  },
+  removeSiteButton: {
+    width: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 4,
   },
 });
 
