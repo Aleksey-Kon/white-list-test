@@ -16,7 +16,8 @@
     "build:development": "eas build --platform android --profile development",
     "build": "eas build --platform android --profile production",
     "debug": "npx expo prebuild --platform android && cd android && gradlew assembleDebug",
-    "release": "npx expo prebuild --platform android --clean && cd android && gradlew assembleRelease"
+    "release": "npx expo prebuild --platform android --clean && cd android && gradlew assembleRelease",
+    "install": "npx expo prebuild --platform android --clean && cd android && gradlew assembleRelease && adb install -r app/build/outputs/apk/release/app-release.apk"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

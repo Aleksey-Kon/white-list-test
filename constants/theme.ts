@@ -38,7 +38,7 @@ export const Colors = {
     warningSurface: "#352C1E",
     warningBorder: "#705A31",
     link: "#7CD4F0",
-    button: "#146EAD",
+    button: "#5bb2fa",
     buttonDisabled: "#29455E",
     secondaryButton: "#1D718D",
     controlTrack: "#52637A",

@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 10,
-    backgroundColor: "#176B87",
+    backgroundColor: "#2196F3",
   },
   addSiteButtonText: {
     color: "#FFFFFF",
