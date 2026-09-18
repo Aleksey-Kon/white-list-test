@@ -1,4 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -8,10 +10,12 @@ interface TestButtonProps {
 }
 
 export function TestButton({ onPress, isTesting }: TestButtonProps) {
+  const isDark = useColorScheme() === 'dark';
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.button, isTesting && styles.buttonDisabled]}
+        style={[styles.button, isTesting && styles.buttonDisabled,
+          isDark && (isTesting ? darkStyles.buttonDisabled : darkStyles.button)]}
         onPress={onPress}
         disabled={isTesting}
         activeOpacity={0.7}
@@ -79,4 +83,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontStyle: 'italic',
   },
+});
+
+const darkStyles = StyleSheet.create({
+  button: { backgroundColor: Colors.dark.button },
+  buttonDisabled: { backgroundColor: Colors.dark.buttonDisabled },
 });

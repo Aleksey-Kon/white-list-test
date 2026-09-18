@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MAX_INTERVAL_MINUTES, MIN_INTERVAL_MINUTES } from '@/utils/backgroundMonitorPolicy';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -25,6 +27,7 @@ export function BackgroundMonitorToggle({
   disabled,
   isTestEnabled,
 }: BackgroundMonitorToggleProps) {
+  const isDark = useColorScheme() === 'dark';
   const [sliderWidth, setSliderWidth] = useState(1);
   const [draftInterval, setDraftInterval] = useState(intervalMinutes);
   const draft = useRef(intervalMinutes);
@@ -47,16 +50,17 @@ export function BackgroundMonitorToggle({
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, isDark && darkStyles.container]}>
       <TouchableOpacity style={styles.toggleRow} onPress={onToggle} activeOpacity={0.7}
         disabled={disabled} accessibilityRole="switch"
         accessibilityState={{ checked: isEnabled, disabled }} accessibilityLabel="Фоновый мониторинг">
         <View style={styles.leftContent}>
-          <View style={[styles.iconContainer, isEnabled && styles.iconContainerActive]}>
+          <View style={[styles.iconContainer, isEnabled && styles.iconContainerActive,
+            isDark && (isEnabled ? darkStyles.activeControl : darkStyles.iconContainer)]}>
             <IconSymbol
               name={isEnabled ? 'bell.fill' : 'bell'}
               size={20}
-              color={isEnabled ? '#FFFFFF' : '#666'}
+              color={isEnabled ? '#FFFFFF' : isDark ? Colors.dark.icon : '#666'}
             />
           </View>
           <View style={styles.textContainer}>
@@ -68,7 +72,8 @@ export function BackgroundMonitorToggle({
             </ThemedText>
           </View>
         </View>
-        <View style={[styles.toggleSwitch, isEnabled && styles.toggleSwitchActive]}>
+        <View style={[styles.toggleSwitch, isEnabled && styles.toggleSwitchActive,
+          isDark && (isEnabled ? darkStyles.activeControl : darkStyles.inactiveControl)]}>
           <View style={[styles.toggleKnob, isEnabled && styles.toggleKnobActive]} />
         </View>
       </TouchableOpacity>
@@ -99,9 +104,9 @@ export function BackgroundMonitorToggle({
           onResponderTerminate={commitInterval}
           onResponderTerminationRequest={() => false}
         >
-          <View style={styles.sliderTrack} pointerEvents="none">
-            <View style={[styles.sliderFill, { width: `${progress * 100}%` }]} />
-            <View style={[styles.sliderThumb, { left: `${progress * 100}%` }]} />
+          <View style={[styles.sliderTrack, isDark && darkStyles.inactiveControl]} pointerEvents="none">
+            <View style={[styles.sliderFill, isDark && darkStyles.sliderAccent, { width: `${progress * 100}%` }]} />
+            <View style={[styles.sliderThumb, isDark && darkStyles.sliderAccent, { left: `${progress * 100}%` }]} />
           </View>
         </View>
         <View style={[styles.rangeLabels, !intervalEnabled && styles.hiddenSlider]}>
@@ -137,4 +142,12 @@ const styles = StyleSheet.create({
   rangeLabels: { flexDirection: 'row', justifyContent: 'space-between' },
   rangeText: { fontSize: 12, opacity: 0.6 },
   disabled: { opacity: 0.6 },
+});
+
+const darkStyles = StyleSheet.create({
+  container: { backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border },
+  iconContainer: { backgroundColor: Colors.dark.surfaceRaised },
+  activeControl: { backgroundColor: Colors.dark.controlActive },
+  inactiveControl: { backgroundColor: Colors.dark.controlTrack },
+  sliderAccent: { backgroundColor: Colors.dark.success },
 });

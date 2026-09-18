@@ -1,5 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { SiteResult, TestResult } from "@/utils/sitePinger";
 import React, { useState } from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
@@ -14,6 +16,7 @@ interface ResultsProps {
 type SectionKey = "whitelist" | "russian" | "neutral" | "custom";
 
 export function Results({ result, customSites, onAddCustomSite, onCustomSiteInputFocus }: ResultsProps) {
+  const isDark = useColorScheme() === "dark";
   const [customSiteInput, setCustomSiteInput] = useState("");
   const [expandedSections, setExpandedSections] = useState<
     Record<SectionKey, boolean>
@@ -64,14 +67,14 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
   ];
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, isDark && darkStyles.container]}>
       {/* Главный результат */}
       <View style={styles.mainResult}>
         <ThemedText type="defaultSemiBold" style={styles.mainResultTitle}>
           Результат теста
         </ThemedText>
         {result.noInternet ? (
-          <View style={[styles.statusBadge, styles.noInternetBadge]}>
+          <View style={[styles.statusBadge, styles.noInternetBadge, isDark && darkStyles.noInternetBadge]}>
             <ThemedText style={styles.statusText}>❌ Нет интернета</ThemedText>
           </View>
         ) : (
@@ -81,6 +84,7 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
               result.hasWhitelist
                 ? styles.whitelistDetected
                 : styles.noWhitelist,
+              isDark && (result.hasWhitelist ? darkStyles.whitelistDetected : darkStyles.noWhitelist),
             ]}
           >
             <ThemedText style={styles.statusText}>
@@ -90,28 +94,28 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
             </ThemedText>
           </View>
         )}
-        <ThemedText style={styles.timestamp}>
+        <ThemedText style={[styles.timestamp, isDark && darkStyles.secondaryText]}>
           {result.timestamp.toLocaleString("ru-RU")}
         </ThemedText>
       </View>
 
       {/* Статистика */}
       <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.whitelistResults.filter((r) => r.accessible).length}/
             {result.whitelistResults.length}
           </ThemedText>
           <ThemedText style={styles.statLabel}>Белый список РФ</ThemedText>
         </View>
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.russianResults.filter((r) => r.accessible).length}/
             {result.russianResults.length}
           </ThemedText>
           <ThemedText style={styles.statLabel}>Российские сайты</ThemedText>
         </View>
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.neutralResults.filter((r) => r.accessible).length}/
             {result.neutralResults.length}
@@ -123,7 +127,7 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
       {/* Детальные результаты - раскрывающиеся списки */}
       <View>
         {sections.map(({ key, title, sites }) => (
-          <View key={key} style={styles.section}>
+          <View key={key} style={[styles.section, isDark && darkStyles.section]}>
             <TouchableOpacity
               style={styles.sectionHeader}
               onPress={() => toggleSection(key)}
@@ -139,6 +143,7 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
                 <View
                   style={[
                     styles.arrow,
+                    isDark && darkStyles.arrow,
                     expandedSections[key] && styles.arrowExpanded,
                   ]}
                 />
@@ -160,14 +165,17 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
             onChangeText={setCustomSiteInput}
             onFocus={onCustomSiteInputFocus}
             placeholder="example.com"
+            placeholderTextColor={isDark ? Colors.dark.icon : undefined}
+            selectionColor={isDark ? Colors.dark.link : undefined}
+            keyboardAppearance={isDark ? "dark" : undefined}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
-            style={styles.addSiteInput}
+            style={[styles.addSiteInput, isDark && darkStyles.addSiteInput]}
             accessibilityLabel="Адрес пользовательского сайта"
           />
           <TouchableOpacity
-            style={styles.addSiteButton}
+            style={[styles.addSiteButton, isDark && darkStyles.addSiteButton]}
             onPress={async () => {
               if (await onAddCustomSite(customSiteInput)) setCustomSiteInput("");
             }}
@@ -182,17 +190,19 @@ export function Results({ result, customSites, onAddCustomSite, onCustomSiteInpu
 }
 
 function SiteResultRow({ site }: { site: SiteResult & { pending?: boolean } }) {
+  const isDark = useColorScheme() === "dark";
   return (
-    <View style={styles.siteRow}>
+    <View style={[styles.siteRow, isDark && darkStyles.siteRow]}>
       <ThemedText style={styles.siteIcon}>
         {site.pending ? "⏳" : site.accessible ? "✅" : "❌"}
       </ThemedText>
       <ThemedText
-        style={[styles.siteUrl, !site.accessible && !site.pending && styles.siteUrlInaccessible]}
+        style={[styles.siteUrl, !site.accessible && !site.pending && styles.siteUrlInaccessible,
+          isDark && !site.accessible && !site.pending && darkStyles.secondaryText]}
       >
         {site.url.replace("https://", "")}
       </ThemedText>
-      <ThemedText style={styles.siteTime}>
+      <ThemedText style={[styles.siteTime, isDark && darkStyles.secondaryText]}>
         {site.pending ? "Не проверен" : site.accessible && site.responseTime ? `${site.responseTime}ms` : "-"}
       </ThemedText>
     </View>
@@ -365,4 +375,22 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: "right",
   },
+});
+
+const darkStyles = StyleSheet.create({
+  container: { backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border },
+  whitelistDetected: { backgroundColor: Colors.dark.errorSurface },
+  noWhitelist: { backgroundColor: Colors.dark.successSurface },
+  noInternetBadge: { backgroundColor: Colors.dark.neutralSurface },
+  statBox: { backgroundColor: Colors.dark.surfaceRaised },
+  section: { backgroundColor: Colors.dark.surfaceInset, borderColor: Colors.dark.border },
+  arrow: { borderColor: Colors.dark.icon },
+  addSiteInput: {
+    backgroundColor: Colors.dark.surfaceInset,
+    borderColor: Colors.dark.inputBorder,
+    color: Colors.dark.text,
+  },
+  addSiteButton: { backgroundColor: Colors.dark.secondaryButton },
+  siteRow: { borderBottomColor: Colors.dark.border },
+  secondaryText: { opacity: 0.8 },
 });

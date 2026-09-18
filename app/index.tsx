@@ -8,6 +8,8 @@ import { Results } from "@/components/Results";
 import { TestButton } from "@/components/TestButton";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
@@ -16,6 +18,7 @@ import { loadCustomSites, normalizeCustomSite, saveCustomSites } from "../utils/
 const SHOW_BACKGROUND_TEST = false;
 
 export default function HomeScreen() {
+  const isDark = useColorScheme() === "dark";
   const networkInfo = useNetworkInfo();
   const {
     isEnabled: isMonitorEnabled,
@@ -221,8 +224,8 @@ export default function HomeScreen() {
           isTestEnabled={isBackgroundTestEnabled}
         />
 
-        <ThemedView style={styles.batteryWarning}>
-          <ThemedText style={styles.batteryWarningText}>
+        <ThemedView style={[styles.batteryWarning, isDark && darkStyles.batteryWarning]}>
+          <ThemedText style={[styles.batteryWarningText, isDark && darkStyles.batteryWarningText]}>
             Система выбирает время запуска: от {intervalMinutes} минут, иногда дольше.
             Для проверки сайтов нужен мобильный интернет без Wi-Fi и VPN.
             В настройках батареи разрешите приложению работу в фоне.
@@ -236,7 +239,7 @@ export default function HomeScreen() {
               ? "Фоновая задача зарегистрирована"
               : "Фоновая задача не зарегистрирована"}
           </ThemedText>
-          {monitorError && <ThemedText style={styles.monitorError}>{monitorError}</ThemedText>}
+          {monitorError && <ThemedText style={[styles.monitorError, isDark && darkStyles.monitorError]}>{monitorError}</ThemedText>}
           <ThemedText style={styles.monitorDetails}>
             {lastRun
               ? `Последний фоновый запуск: ${new Date(lastRun.startedAt).toLocaleString()}. ${lastRun.message}`
@@ -350,4 +353,10 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     textAlign: "center",
   },
+});
+
+const darkStyles = StyleSheet.create({
+  batteryWarning: { backgroundColor: Colors.dark.warningSurface, borderColor: Colors.dark.warningBorder },
+  batteryWarningText: { color: Colors.dark.warning },
+  monitorError: { color: Colors.dark.error },
 });

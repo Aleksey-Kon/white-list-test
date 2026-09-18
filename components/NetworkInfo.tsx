@@ -1,5 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { NetworkInfo } from "@/hooks/useNetworkInfo";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -9,8 +11,9 @@ interface NetworkInfoProps {
 }
 
 export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
+  const isDark = useColorScheme() === "dark";
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, isDark && darkStyles.container]}>
       <ThemedText type="defaultSemiBold" style={styles.title}>
         Информация о сети
       </ThemedText>
@@ -26,6 +29,7 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
           style={[
             styles.value,
             networkInfo.isConnected ? styles.connected : styles.disconnected,
+            isDark && (networkInfo.isConnected ? darkStyles.connected : darkStyles.disconnected),
           ]}
         >
           {networkInfo.isConnected ? "Подключено" : "Не подключено"}
@@ -40,16 +44,16 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
       )}
 
       {networkInfo.isWifi && (
-        <View style={styles.warningRow}>
-          <ThemedText style={styles.warningText}>
+        <View style={[styles.warningRow, isDark && darkStyles.warningRow]}>
+          <ThemedText style={[styles.warningText, isDark && darkStyles.warningText]}>
             ⚠️ Для теста отключите WiFi и используйте мобильный интернет
           </ThemedText>
         </View>
       )}
 
       {networkInfo.isVpn && (
-        <View style={styles.warningRow}>
-          <ThemedText style={styles.warningText}>
+        <View style={[styles.warningRow, isDark && darkStyles.warningRow]}>
+          <ThemedText style={[styles.warningText, isDark && darkStyles.warningText]}>
             ⚠️ Обнаружен активный VPN. Для корректной работы отключите VPN
           </ThemedText>
         </View>
@@ -110,4 +114,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
+});
+
+const darkStyles = StyleSheet.create({
+  container: { backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border },
+  connected: { color: Colors.dark.success },
+  disconnected: { color: Colors.dark.error },
+  warningRow: { backgroundColor: Colors.dark.warningSurface, borderColor: Colors.dark.warningBorder },
+  warningText: { color: Colors.dark.warning },
 });
