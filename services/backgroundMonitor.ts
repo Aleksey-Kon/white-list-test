@@ -5,7 +5,11 @@ import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import { Platform } from "react-native";
 
-import { classifyConnectivity, normalizeInterval, shouldNotify } from "../utils/backgroundMonitorPolicy";
+import {
+  classifyConnectivity,
+  normalizeInterval,
+  shouldNotify,
+} from "../utils/backgroundMonitorPolicy";
 import { pingSite } from "../utils/sitePinger";
 
 export const BACKGROUND_MONITOR_TASK = "background-whitelist-monitor";
@@ -16,9 +20,14 @@ const TEST_KEY = "background-monitor-test-enabled";
 const INTERVAL_KEY = "background-monitor-interval-minutes";
 const STATE_KEY = "last-whitelist-state";
 const RUN_KEY = "background-monitor-last-run";
-const TASK_TYPE = Platform.OS === "ios" ? "backgroundTask" : "expo-background-task";
-const NEUTRAL_SITES = ["https://gitlab.com", "https://google.com", "https://2ip.io"];
-const CONTROL_SITES = ["https://vk.com", "https://yandex.ru"];
+const TASK_TYPE =
+  Platform.OS === "ios" ? "backgroundTask" : "expo-background-task";
+const NEUTRAL_SITES = [
+  "https://gitlab.com",
+  "https://google.com",
+  "https://2ip.io",
+];
+const CONTROL_SITES = ["https://vk.ru", "https://yandex.ru"];
 
 export interface MonitorSettings {
   isEnabled: boolean;
@@ -67,8 +76,13 @@ async function ensureChannel() {
   }
 }
 
-function permissionsGranted(permissions: Notifications.NotificationPermissionsStatus) {
-  return permissions.granted || permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+function permissionsGranted(
+  permissions: Notifications.NotificationPermissionsStatus,
+) {
+  return (
+    permissions.granted ||
+    permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
+  );
 }
 
 async function notificationIssue(request: boolean): Promise<string | null> {
@@ -85,7 +99,10 @@ async function notificationIssue(request: boolean): Promise<string | null> {
   }
   if (Platform.OS === "android") {
     const channel = await Notifications.getNotificationChannelAsync(CHANNEL_ID);
-    if (!channel || channel.importance === Notifications.AndroidImportance.NONE) {
+    if (
+      !channel ||
+      channel.importance === Notifications.AndroidImportance.NONE
+    ) {
       return "Канал «Проверка белых списков» отключён. Включите его в настройках уведомлений.";
     }
   }
@@ -96,14 +113,21 @@ async function backgroundIssue(): Promise<string | null> {
   if (Platform.OS === "web" || !(await TaskManager.isAvailableAsync())) {
     return "Фоновый мониторинг доступен в установленной APK/iOS-сборке, не в Expo Go или браузере.";
   }
-  if ((await BackgroundTask.getStatusAsync()) !== BackgroundTask.BackgroundTaskStatus.Available) {
+  if (
+    (await BackgroundTask.getStatusAsync()) !==
+    BackgroundTask.BackgroundTaskStatus.Available
+  ) {
     return "Фоновые задачи недоступны. Проверьте фоновое обновление в настройках телефона и используйте установленную сборку.";
   }
   return null;
 }
 
 export async function readMonitorSettings(): Promise<MonitorSettings> {
-  const values = await AsyncStorage.multiGet([ENABLED_KEY, TEST_KEY, INTERVAL_KEY]);
+  const values = await AsyncStorage.multiGet([
+    ENABLED_KEY,
+    TEST_KEY,
+    INTERVAL_KEY,
+  ]);
   const stored = Object.fromEntries(values);
   return {
     isEnabled: stored[ENABLED_KEY] === "true",
@@ -122,10 +146,17 @@ async function saveSettings(settings: MonitorSettings) {
 
 async function syncRegistration(settings: MonitorSettings) {
   const tasks = await TaskManager.getRegisteredTasksAsync();
-  const existing = tasks.find((task) => task.taskName === BACKGROUND_MONITOR_TASK);
+  const existing = tasks.find(
+    (task) => task.taskName === BACKGROUND_MONITOR_TASK,
+  );
   const enabled = settings.isEnabled || settings.isTestEnabled;
-  if (existing && enabled && existing.taskType === TASK_TYPE &&
-      existing.options?.minimumInterval === settings.intervalMinutes) return;
+  if (
+    existing &&
+    enabled &&
+    existing.taskType === TASK_TYPE &&
+    existing.options?.minimumInterval === settings.intervalMinutes
+  )
+    return;
 
   if (existing) {
     if (existing.taskType === TASK_TYPE) {
@@ -180,7 +211,10 @@ export function initializeMonitor(): Promise<MonitorSnapshot> {
       if (!issue) {
         await ensureChannel();
         await syncRegistration(settings);
-        if (!settings.isTestEnabled) await Notifications.cancelScheduledNotificationAsync(TEST_NOTIFICATION_ID);
+        if (!settings.isTestEnabled)
+          await Notifications.cancelScheduledNotificationAsync(
+            TEST_NOTIFICATION_ID,
+          );
       }
     } catch (error) {
       // Keep saved switches visible so a failed registration can still be disabled/retried.
@@ -191,12 +225,15 @@ export function initializeMonitor(): Promise<MonitorSnapshot> {
   });
 }
 
-export function updateMonitorSettings(patch: Partial<MonitorSettings>): Promise<MonitorSnapshot> {
+export function updateMonitorSettings(
+  patch: Partial<MonitorSettings>,
+): Promise<MonitorSnapshot> {
   return serialize(async () => {
     const previous = await readMonitorSettings();
     const next = { ...previous, ...patch };
     next.intervalMinutes = normalizeInterval(next.intervalMinutes);
-    const enabling = (next.isEnabled && !previous.isEnabled) ||
+    const enabling =
+      (next.isEnabled && !previous.isEnabled) ||
       (next.isTestEnabled && !previous.isTestEnabled);
     const issue = await backgroundIssue();
     if (enabling && issue) throw new Error(issue);
@@ -208,9 +245,12 @@ export function updateMonitorSettings(patch: Partial<MonitorSettings>): Promise<
       // Persist before registering so a worker always sees the current opt-in.
       await saveSettings(next);
       if (!issue) await syncRegistration(next);
-      if (next.isTestEnabled && !previous.isTestEnabled) await scheduleDeliveryTest();
+      if (next.isTestEnabled && !previous.isTestEnabled)
+        await scheduleDeliveryTest();
       if (!next.isTestEnabled && Platform.OS !== "web") {
-        await Notifications.cancelScheduledNotificationAsync(TEST_NOTIFICATION_ID);
+        await Notifications.cancelScheduledNotificationAsync(
+          TEST_NOTIFICATION_ID,
+        );
       }
     } catch (error) {
       await saveSettings(previous);
@@ -227,7 +267,9 @@ export async function getMonitorSnapshot(): Promise<MonitorSnapshot> {
   let isRegistered = false;
   try {
     issue = await backgroundIssue();
-    isRegistered = !issue && await TaskManager.isTaskRegisteredAsync(BACKGROUND_MONITOR_TASK);
+    isRegistered =
+      !issue &&
+      (await TaskManager.isTaskRegisteredAsync(BACKGROUND_MONITOR_TASK));
     if (!issue) issue = await notificationIssue(false);
   } catch (error) {
     issue = monitorError(error);
@@ -237,10 +279,17 @@ export async function getMonitorSnapshot(): Promise<MonitorSnapshot> {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.startedAt === "string" && typeof parsed.message === "string" &&
-          ["running", "checked", "skipped", "error"].includes(parsed.status) &&
-          ["none", "scheduled", "blocked"].includes(parsed.notification)) lastRun = parsed;
-    } catch { /* Ignore an incomplete legacy record. */ }
+      if (
+        parsed &&
+        typeof parsed.startedAt === "string" &&
+        typeof parsed.message === "string" &&
+        ["running", "checked", "skipped", "error"].includes(parsed.status) &&
+        ["none", "scheduled", "blocked"].includes(parsed.notification)
+      )
+        lastRun = parsed;
+    } catch {
+      /* Ignore an incomplete legacy record. */
+    }
   }
   return { settings, issue, isRegistered, lastRun };
 }
@@ -249,38 +298,60 @@ async function saveRun(run: MonitorRun) {
   await AsyncStorage.setItem(RUN_KEY, JSON.stringify(run));
 }
 
-async function checkSites(): Promise<{ message: string; hasWhitelist?: boolean }> {
+async function checkSites(): Promise<{
+  message: string;
+  hasWhitelist?: boolean;
+}> {
   console.info("[BackgroundMonitor] Reading network state");
   const network = await Network.getNetworkStateAsync();
   console.info("[BackgroundMonitor] Network state", JSON.stringify(network));
   const { isVpnActive } = await import("react-native-vpn-detector");
   if (isVpnActive()) return { message: "Проверка пропущена: отключите VPN." };
-  if (network.type !== Network.NetworkStateType.CELLULAR || network.isConnected === false) {
-    return { message: "Проверка пропущена: нужен мобильный интернет без Wi-Fi." };
+  if (
+    network.type !== Network.NetworkStateType.CELLULAR ||
+    network.isConnected === false
+  ) {
+    return {
+      message: "Проверка пропущена: нужен мобильный интернет без Wi-Fi.",
+    };
   }
   // Do not trust isInternetReachable: its probe can itself be blocked by a whitelist.
-  const results = await Promise.all([...NEUTRAL_SITES, ...CONTROL_SITES].map(pingSite));
+  const results = await Promise.all(
+    [...NEUTRAL_SITES, ...CONTROL_SITES].map(pingSite),
+  );
   console.info("[BackgroundMonitor] Site probes completed");
-  const accessible = results.slice(0, NEUTRAL_SITES.length).filter((r) => r.accessible).length;
-  const controls = results.slice(NEUTRAL_SITES.length).filter((r) => r.accessible).length;
+  const accessible = results
+    .slice(0, NEUTRAL_SITES.length)
+    .filter((r) => r.accessible).length;
+  const controls = results
+    .slice(NEUTRAL_SITES.length)
+    .filter((r) => r.accessible).length;
   const state = classifyConnectivity(accessible, controls);
-  if (state === "offline") return { message: "Ни один контрольный сайт не доступен. Нельзя отличить белый список от отсутствия интернета." };
+  if (state === "offline")
+    return {
+      message:
+        "Ни один контрольный сайт не доступен. Нельзя отличить белый список от отсутствия интернета.",
+    };
   return {
     hasWhitelist: state === "whitelist",
-    message: state === "whitelist"
-      ? "Возможен белый список: нейтральные сайты недоступны, контрольные российские сайты доступны."
-      : `Нейтральные сайты доступны: ${accessible}/${NEUTRAL_SITES.length}. Белый список не обнаружен.`,
+    message:
+      state === "whitelist"
+        ? "Возможен белый список: нейтральные сайты недоступны, контрольные российские сайты доступны."
+        : `Нейтральные сайты доступны: ${accessible}/${NEUTRAL_SITES.length}. Белый список не обнаружен.`,
   };
 }
 
 export async function runBackgroundMonitor(taskError?: { message: string }) {
   const run: MonitorRun = {
-    startedAt: new Date().toISOString(), status: "running",
-    message: "Фоновая проверка началась.", notification: "none",
+    startedAt: new Date().toISOString(),
+    status: "running",
+    message: "Фоновая проверка началась.",
+    notification: "none",
   };
   try {
     const settings = await readMonitorSettings();
-    if (!settings.isEnabled && !settings.isTestEnabled) return BackgroundTask.BackgroundTaskResult.Success;
+    if (!settings.isEnabled && !settings.isTestEnabled)
+      return BackgroundTask.BackgroundTaskResult.Success;
     console.info("[BackgroundMonitor] Started", run.startedAt);
     await saveRun(run);
     console.info("[BackgroundMonitor] Run record saved");
@@ -291,8 +362,11 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
     // A check can finish after the user disables monitoring.
     const current = await readMonitorSettings();
     const previous = await AsyncStorage.getItem(STATE_KEY);
-    const notify = current.isTestEnabled || (current.isEnabled && result.hasWhitelist !== undefined &&
-      shouldNotify(previous, result.hasWhitelist, false));
+    const notify =
+      current.isTestEnabled ||
+      (current.isEnabled &&
+        result.hasWhitelist !== undefined &&
+        shouldNotify(previous, result.hasWhitelist, false));
     if (notify) {
       const issue = await notificationIssue(false);
       if (issue) {
@@ -301,8 +375,12 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
       } else {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: result.hasWhitelist === undefined ? "Фоновая проверка: пропуск"
-              : result.hasWhitelist ? "Возможен белый список" : "Белый список не обнаружен",
+            title:
+              result.hasWhitelist === undefined
+                ? "Фоновая проверка: пропуск"
+                : result.hasWhitelist
+                  ? "Возможен белый список"
+                  : "Белый список не обнаружен",
             body: result.message,
             sound: "default",
             data: { kind: "background-check", startedAt: run.startedAt },
@@ -311,7 +389,8 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
         });
         run.notification = "scheduled";
         // Advance only after acceptance, so permission/scheduling failures retry next run.
-        if (result.hasWhitelist !== undefined) await AsyncStorage.setItem(STATE_KEY, String(result.hasWhitelist));
+        if (result.hasWhitelist !== undefined)
+          await AsyncStorage.setItem(STATE_KEY, String(result.hasWhitelist));
       }
     }
     run.completedAt = new Date().toISOString();
@@ -322,13 +401,22 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
     run.status = "error";
     run.message = monitorError(error);
     run.completedAt = new Date().toISOString();
-    try { await saveRun(run); } catch (storageError) { console.error("[BackgroundMonitor] Diagnostics:", storageError); }
+    try {
+      await saveRun(run);
+    } catch (storageError) {
+      console.error("[BackgroundMonitor] Diagnostics:", storageError);
+    }
     console.error("[BackgroundMonitor]", error);
     return BackgroundTask.BackgroundTaskResult.Failed;
   }
 }
 
-if (Platform.OS !== "web" && !TaskManager.isTaskDefined(BACKGROUND_MONITOR_TASK)) {
-  TaskManager.defineTask(BACKGROUND_MONITOR_TASK, ({ error }) => runBackgroundMonitor(error ?? undefined));
+if (
+  Platform.OS !== "web" &&
+  !TaskManager.isTaskDefined(BACKGROUND_MONITOR_TASK)
+) {
+  TaskManager.defineTask(BACKGROUND_MONITOR_TASK, ({ error }) =>
+    runBackgroundMonitor(error ?? undefined),
+  );
   console.info("[BackgroundMonitor] Task defined at JS startup");
 }
