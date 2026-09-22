@@ -43,3 +43,4 @@ app-example
 /android
 my-release-key.keystore
 test-white-list/
+/.qwen
