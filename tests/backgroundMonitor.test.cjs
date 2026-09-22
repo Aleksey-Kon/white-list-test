@@ -106,7 +106,7 @@ test('first result notifies; unchanged result is quiet; both state transitions n
   assert.equal(h.storage.get(STATE), 'false');
   await h.worker();
   assert.equal(h.scheduled.size, 1);
-  h.state.ping = async (url) => ({ accessible: url.includes('vk.com') });
+  h.state.ping = async (url) => ({ accessible: url === 'https://vk.ru' });
   await h.worker();
   assert.equal(h.scheduled.size, 2);
   assert.equal(h.storage.get(STATE), 'true');

@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "apple"],
+  "android": {
+    "modules": ["expo.modules.siteprobe.SiteProbeModule"]
+  },
+  "apple": {
+    "modules": ["SiteProbeModule"]
+  }
+}

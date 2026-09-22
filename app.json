@@ -61,7 +61,8 @@
       "expo-build-properties",
       "expo-font",
       "expo-web-browser",
-      "expo-background-task"
+      "expo-background-task",
+      "./plugins/withSiteProbe"
     ],
     "experiments": {
       "typedRoutes": true,

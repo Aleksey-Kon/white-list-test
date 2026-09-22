@@ -1,3 +1,19 @@
+import { requireOptionalNativeModule } from "expo";
+import { Platform } from "react-native";
+
+// Only this status-only probe accepts invalid certificates. Other app requests
+// continue to use their normal TLS validation.
+const nativeProbe =
+  Platform.OS === "web"
+    ? null
+    : requireOptionalNativeModule<{
+        requestStatus(
+          url: string,
+          method: string,
+          timeoutMs: number,
+        ): Promise<number>;
+      }>("SiteProbe");
+
 // Списки сайтов для тестирования
 export const WHITELIST_RU_SITES = [
   "https://vk.ru",
@@ -15,12 +31,10 @@ export const WHITELIST_RU_SITES = [
   "https://samokat.ru",
   "https://cdek.ru",
   "https://5ka.ru",
-  "https://magnit.ru",
-  "https://vamprivet.ru",
   "https://alfabank.ru",
   "https://vtb.ru",
   "https://hh.ru",
-  "https://moskva.mts.ru",
+  "https://mts.ru",
   "https://megafon.ru",
   "https://t2.ru",
   "https://beeline.ru",
@@ -65,7 +79,6 @@ export const NEUTRAL_SITES = [
   "https://kernel.org",
   "https://ubuntu.com",
   "https://archlinux.org",
-  "https://reactjs.org",
   "https://nodejs.org",
   "https://google.com",
   "https://amazon.com",
@@ -108,16 +121,29 @@ function getPingUrl(url: string): string {
  * Проверяет доступность сайта через "ping" запрос (загрузка favicon)
  * Если favicon недоступен, fallback на обычный HTTP запрос
  */
-async function requestSite(url: string, method: string): Promise<Response> {
+async function requestSite(
+  url: string,
+  method: string,
+): Promise<{ status: number; type?: ResponseType }> {
+  if (nativeProbe) {
+    // The native timeout also runs when background JS timers are suspended.
+    return {
+      status: await nativeProbe.requestStatus(url, method, PING_TIMEOUT),
+    };
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PING_TIMEOUT);
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       method,
       signal: controller.signal,
       cache: "no-store",
-      redirect: "follow",
+      // A redirect already proves reachability. Following it can loop on
+      // cookie/JavaScript challenges or fail on another host/protocol.
+      redirect: "manual",
     });
+    return response;
   } finally {
     clearTimeout(timeout);
   }
@@ -136,7 +162,10 @@ export async function pingSite(url: string): Promise<SiteResult> {
       return {
         url,
         // An HTTP response (including a missing favicon) proves reachability.
-        accessible: response.status > 0 && response.status < 500,
+        accessible:
+          // Browsers hide the status of manual redirects but expose this type.
+          response.type === "opaqueredirect" ||
+          (response.status > 0 && response.status < 500),
         responseTime: Date.now() - startTime,
       };
     } catch {
