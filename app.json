@@ -58,7 +58,14 @@
           "sounds": []
         }
       ],
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "useLegacyPackaging": true
+          }
+        }
+      ],
       "expo-font",
       "expo-web-browser",
       "expo-background-task",
