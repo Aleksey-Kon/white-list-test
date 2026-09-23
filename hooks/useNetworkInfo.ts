@@ -65,7 +65,7 @@ export function useNetworkInfo() {
         type: isWifi
           ? "WiFi"
           : isCellular
-            ? "Мобильный интернет"
+            ? "CELLULAR"
             : networkState.type || "Unknown",
         isConnected: networkState.isConnected || false,
         isWifi,

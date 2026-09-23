@@ -1,3 +1,4 @@
+import { useLocalization } from '@/hooks/useLocalization';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -10,6 +11,7 @@ interface TestButtonProps {
 }
 
 export function TestButton({ onPress, isTesting }: TestButtonProps) {
+  const { t } = useLocalization();
   const isDark = useColorScheme() === 'dark';
   return (
     <View style={styles.container}>
@@ -25,10 +27,10 @@ export function TestButton({ onPress, isTesting }: TestButtonProps) {
         ) : (
           <>
             <ThemedText style={styles.buttonText}>
-              ТЕСТ
+              {t('test')}
             </ThemedText>
             <ThemedText style={styles.buttonSubtext}>
-              Проверка
+              {t('check')}
             </ThemedText>
           </>
         )}
@@ -36,7 +38,7 @@ export function TestButton({ onPress, isTesting }: TestButtonProps) {
       
       {isTesting && (
         <ThemedText style={styles.testingText}>
-          Тестирование...
+          {t('testing')}
         </ThemedText>
       )}
     </View>

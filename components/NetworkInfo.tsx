@@ -1,3 +1,4 @@
+import { useLocalization } from "@/hooks/useLocalization";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -6,25 +7,39 @@ import { NetworkInfo } from "@/hooks/useNetworkInfo";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
+const networkTypeKey = (type: string) => {
+  switch (type.toUpperCase()) {
+    case "NONE": return "none";
+    case "BLUETOOTH": return "bluetooth";
+    case "ETHERNET": return "ethernet";
+    case "WIMAX": return "wimax";
+    case "VPN": return "vpn";
+    case "OTHER": return "other";
+    case "ERROR": return "error";
+    default: return "unknown";
+  }
+};
+
 interface NetworkInfoProps {
   networkInfo: NetworkInfo;
 }
 
 export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
+  const { t } = useLocalization();
   const isDark = useColorScheme() === "dark";
   return (
     <ThemedView style={[styles.container, isDark && darkStyles.container]}>
       <ThemedText type="defaultSemiBold" style={styles.title}>
-        Информация о сети
+        {t("networkInfo")}
       </ThemedText>
 
       <View style={styles.infoRow}>
-        <ThemedText style={styles.label}>Тип подключения:</ThemedText>
-        <ThemedText style={styles.value}>{networkInfo.type}</ThemedText>
+        <ThemedText style={styles.label}>{t("connectionType")}</ThemedText>
+        <ThemedText style={styles.value}>{networkInfo.isWifi ? t("wifi") : networkInfo.isCellular ? t("cellular") : t(networkTypeKey(networkInfo.type))}</ThemedText>
       </View>
 
       <View style={styles.infoRow}>
-        <ThemedText style={styles.label}>Статус:</ThemedText>
+        <ThemedText style={styles.label}>{t("status")}</ThemedText>
         <ThemedText
           style={[
             styles.value,
@@ -32,13 +47,13 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
             isDark && (networkInfo.isConnected ? darkStyles.connected : darkStyles.disconnected),
           ]}
         >
-          {networkInfo.isConnected ? "Подключено" : "Не подключено"}
+          {networkInfo.isConnected ? t("connected") : t("disconnected")}
         </ThemedText>
       </View>
 
       {networkInfo.carrier && (
         <View style={styles.infoRow}>
-          <ThemedText style={styles.label}>Сеть:</ThemedText>
+          <ThemedText style={styles.label}>{t("carrier")}</ThemedText>
           <ThemedText style={styles.value}>{networkInfo.carrier}</ThemedText>
         </View>
       )}
@@ -46,7 +61,7 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
       {networkInfo.isWifi && (
         <View style={[styles.warningRow, isDark && darkStyles.warningRow]}>
           <ThemedText style={[styles.warningText, isDark && darkStyles.warningText]}>
-            ⚠️ Для теста отключите WiFi и используйте мобильный интернет
+            {t("wifiHint")}
           </ThemedText>
         </View>
       )}
@@ -54,7 +69,7 @@ export function NetworkInfoDisplay({ networkInfo }: NetworkInfoProps) {
       {networkInfo.isVpn && (
         <View style={[styles.warningRow, isDark && darkStyles.warningRow]}>
           <ThemedText style={[styles.warningText, isDark && darkStyles.warningText]}>
-            ⚠️ Обнаружен активный VPN. Для корректной работы отключите VPN
+            {t("vpnHint")}
           </ThemedText>
         </View>
       )}

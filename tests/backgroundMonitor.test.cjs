@@ -31,6 +31,7 @@ function setup(options = {}) {
       multiGet: async (keys) => keys.map((key) => [key, storage.get(key) ?? null]),
       multiSet: async (values) => values.forEach(([key, value]) => storage.set(key, value)),
     },
+    'expo-localization': { getLocales: () => [{ languageCode: options.language ?? 'ru' }] },
     'expo-background-task': {
       BackgroundTaskStatus: { Available: 2, Restricted: 1 },
       BackgroundTaskResult: { Success: 1, Failed: 2 },
@@ -96,7 +97,7 @@ test('web startup reports unsupported background monitoring without loading the 
   const h = setup({ os: 'web' });
   const snapshot = await h.service.initializeMonitor();
   assert.equal(snapshot.isRegistered, false);
-  assert.match(snapshot.issue, /APK/);
+  assert.equal(snapshot.issue, 'backgroundUnsupported');
 });
 
 test('first result notifies; unchanged result is quiet; both state transitions notify', async () => {
@@ -158,7 +159,7 @@ test('blocked permissions preserve baseline and retry after permission is restor
 
 test('denial does not enable either switch or register the worker', async () => {
   const h = setup({ permissions: { granted: false, canAskAgain: true } });
-  await assert.rejects(h.service.updateMonitorSettings({ isTestEnabled: true }), /Уведомления запрещены/);
+  await assert.rejects(h.service.updateMonitorSettings({ isTestEnabled: true }), /notificationsDenied/);
   assert.equal(h.storage.has(TEST), false);
   assert.equal(h.calls.includes('register'), false);
   assert.ok(h.calls.indexOf('channel') < h.calls.indexOf('request-permission'));
@@ -166,7 +167,7 @@ test('denial does not enable either switch or register the worker', async () => 
 
 test('disabled Android channel blocks enabling', async () => {
   const h = setup({ channel: { importance: 0 } });
-  await assert.rejects(h.service.updateMonitorSettings({ isEnabled: true }), /Канал/);
+  await assert.rejects(h.service.updateMonitorSettings({ isEnabled: true }), /channelDisabled/);
   assert.equal(h.calls.includes('register'), false);
 });
 
@@ -237,7 +238,7 @@ test('interval change replaces registration only once and stays in minutes', asy
 
 test('unavailable background service cannot enable monitoring', async () => {
   const h = setup({ available: false });
-  await assert.rejects(h.service.updateMonitorSettings({ isEnabled: true }), /установленной/);
+  await assert.rejects(h.service.updateMonitorSettings({ isEnabled: true }), /backgroundUnsupported/);
   assert.equal(h.calls.includes('register'), false);
 });
 
@@ -310,4 +311,42 @@ test('disabled worker does not probe, notify or write a run record', async () =>
   assert.equal(await h.worker(), 1);
   assert.equal(h.storage.has(RUN), false);
   assert.equal(h.scheduled.size, 0);
+});
+
+test('headless notifications use the saved language over the system language', async () => {
+  const h = setup({ language: 'ru', storage: { [ENABLED]: 'true', 'app-language': 'en' } });
+  await h.worker();
+  const notification = [...h.scheduled.values()][0];
+  assert.equal(notification.content.title, 'No whitelist restrictions detected');
+  assert.equal(notification.content.body, 'Neutral sites reachable: 3/3. No whitelist restrictions detected.');
+  assert.equal(h.run().messageKey, 'unrestrictedCheck');
+  assert.deepEqual(h.run().messageParams, { accessible: 3, total: 3 });
+});
+
+test('delivery tests use English on non-Russian systems without a saved language', async () => {
+  const h = setup({ language: 'de' });
+  await h.service.updateMonitorSettings({ isTestEnabled: true });
+  const notification = [...h.scheduled.values()][0];
+  assert.equal(notification.content.title, 'Notification delivery test');
+});
+
+test('Russian notifications and untranslated native error details remain available', async () => {
+  const h = setup({ language: 'ru', storage: { [ENABLED]: 'true' } });
+  await h.worker();
+  assert.equal([...h.scheduled.values()][0].content.title, 'Белый список не обнаружен');
+  await h.worker({ message: 'native error' });
+  assert.equal(h.run().message, 'native error');
+  assert.equal(h.run().messageKey, undefined);
+});
+
+test('invalid translation metadata in persisted diagnostics is ignored', async () => {
+  const h = setup({ storage: { [RUN]: JSON.stringify({
+    startedAt: '2026-09-23T12:00:00Z', status: 'checked', notification: 'none',
+    message: 'legacy message', messageKey: 'not-a-key', messageParams: { bad: {} }, issue: {},
+  }) } });
+  const { lastRun } = await h.service.getMonitorSnapshot();
+  assert.equal(lastRun.message, 'legacy message');
+  assert.equal(lastRun.messageKey, undefined);
+  assert.equal(lastRun.messageParams, undefined);
+  assert.equal(lastRun.issue, undefined);
 });

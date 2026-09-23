@@ -1,7 +1,10 @@
+import { useLocalization } from "@/hooks/useLocalization";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { translateDiagnostic, translate } from "@/utils/translations";
 import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
 import { NetworkInfoDisplay } from "@/components/NetworkInfo";
 import { Results } from "@/components/Results";
@@ -19,6 +22,7 @@ const SHOW_BACKGROUND_TEST = true;
 const SHOW_BACKGROUND = true;
 
 export default function HomeScreen() {
+  const { t, locale, language } = useLocalization();
   const isDark = useColorScheme() === "dark";
   const networkInfo = useNetworkInfo();
   const {
@@ -90,11 +94,11 @@ export default function HomeScreen() {
       setTestResult(result);
     } catch (error) {
       console.error("Test error:", error);
-      Alert.alert("Ошибка", "Произошла ошибка во время теста");
+      Alert.alert(t("error"), t("testError"));
     } finally {
       setIsTesting(false);
     }
-  }, [customSites]);
+  }, [customSites, t]);
 
   const handleTest = useCallback(async () => {
     const hasVpn = networkInfo.isVpn;
@@ -104,12 +108,12 @@ export default function HomeScreen() {
     // Сценарий: WiFi + VPN
     if (hasWifi && hasVpn) {
       Alert.alert(
-        "Внимание",
-        "Обнаружены WiFi и VPN одновременно. Для корректного теста: Отключите WiFi, Отключите VPN. Продолжить?",
+        t("warning"),
+        t("wifiVpnWarning"),
         [
-          { text: "Отмена", style: "cancel" },
+          { text: t("cancel"), style: "cancel" },
           {
-            text: "Продолжить",
+            text: t("continue"),
             onPress: () => runTest(),
           },
         ],
@@ -120,12 +124,12 @@ export default function HomeScreen() {
     // Предупреждение если VPN
     if (hasVpn) {
       Alert.alert(
-        "Внимание",
-        "Обнаружен активный VPN. Для корректного теста отключите VPN. Продолжить?",
+        t("warning"),
+        t("vpnWarning"),
         [
-          { text: "Отмена", style: "cancel" },
+          { text: t("cancel"), style: "cancel" },
           {
-            text: "Продолжить",
+            text: t("continue"),
             onPress: () => runTest(),
           },
         ],
@@ -136,12 +140,12 @@ export default function HomeScreen() {
     // Предупреждение если не мобильный интернет
     if (notCellular) {
       Alert.alert(
-        "Внимание",
-        "Для корректного теста подключитесь к мобильному интернету и отключите WiFi. Продолжить?",
+        t("warning"),
+        t("cellularWarning"),
         [
-          { text: "Отмена", style: "cancel" },
+          { text: t("cancel"), style: "cancel" },
           {
-            text: "Продолжить",
+            text: t("continue"),
             onPress: () => runTest(),
           },
         ],
@@ -150,16 +154,16 @@ export default function HomeScreen() {
     }
 
     await runTest();
-  }, [networkInfo.isCellular, networkInfo.isWifi, networkInfo.isVpn, runTest]);
+  }, [networkInfo.isCellular, networkInfo.isWifi, networkInfo.isVpn, runTest, t]);
 
   const handleAddCustomSite = async (value: string): Promise<boolean> => {
     const site = normalizeCustomSite(value);
     if (!site) {
-      Alert.alert("Ошибка", "Введите корректный адрес сайта.");
+      Alert.alert(t("error"), t("invalidSite"));
       return false;
     }
     if (customSites.includes(site)) {
-      Alert.alert("Сайт уже добавлен", "Этот сайт уже есть в пользовательском списке.");
+      Alert.alert(t("duplicateSiteTitle"), t("duplicateSite"));
       return false;
     }
 
@@ -170,7 +174,7 @@ export default function HomeScreen() {
       return true;
     } catch (error) {
       console.error("Custom site save error:", error);
-      Alert.alert("Ошибка", "Не удалось сохранить сайт в памяти телефона.");
+      Alert.alert(t("error"), t("saveSiteError"));
       return false;
     }
   };
@@ -182,7 +186,7 @@ export default function HomeScreen() {
       return true;
     } catch (error) {
       console.error("Custom site removal error:", error);
-      Alert.alert("Ошибка", "Не удалось удалить сайт из памяти телефона.");
+      Alert.alert(t("error"), t("removeSiteError"));
       return false;
     }
   };
@@ -215,13 +219,14 @@ export default function HomeScreen() {
           onLayout={keepCustomSiteInputVisible}
           onContentSizeChange={keepCustomSiteInputVisible}
         >
+        <LanguageSwitcher />
         {/* Заголовок */}
         <ThemedText type="title" style={styles.header}>
-          Тест белых списков
+          {t("appTitle")}
         </ThemedText>
 
         <ThemedText style={styles.description}>
-          Проверка наличия белых списков на мобильном интернете
+          {t("appDescription")}
         </ThemedText>
 
         {/* Информация о сети */}
@@ -243,9 +248,7 @@ export default function HomeScreen() {
         {SHOW_BACKGROUND && (
         <ThemedView style={[styles.batteryWarning, isDark && darkStyles.batteryWarning]}>
           <ThemedText style={[styles.batteryWarningText, isDark && darkStyles.batteryWarningText]}>
-            Система выбирает время запуска: от {intervalMinutes} минут, иногда дольше.
-            Для проверки сайтов нужен мобильный интернет без Wi-Fi и VPN.
-            В настройках батареи разрешите приложению работу в фоне.
+            {t("batteryHint", { minutes: intervalMinutes })}
           </ThemedText>
         </ThemedView>
         )}
@@ -254,27 +257,33 @@ export default function HomeScreen() {
         {SHOW_BACKGROUND_TEST && (
         <ThemedView style={styles.monitorStatus}>
           <ThemedText>
-            {isMonitorBusy ? "Проверяем настройки…" : isRegistered
-              ? "Фоновая задача зарегистрирована"
-              : "Фоновая задача не зарегистрирована"}
+            {isMonitorBusy ? t("checkingSettings") : isRegistered
+              ? t("taskRegistered")
+              : t("taskNotRegistered")}
           </ThemedText>
-          {monitorError && <ThemedText style={[styles.monitorError, isDark && darkStyles.monitorError]}>{monitorError}</ThemedText>}
+          {monitorError && <ThemedText style={[styles.monitorError, isDark && darkStyles.monitorError]}>{translateDiagnostic(language, monitorError)}</ThemedText>}
           <ThemedText style={styles.monitorDetails}>
             {lastRun
-              ? `Последний фоновый запуск: ${new Date(lastRun.startedAt).toLocaleString()}. ${lastRun.message}`
-              : "Фоновых запусков пока нет. Сверните приложение и дождитесь запуска системой."}
+              ? t("lastRun", {
+                  date: new Date(lastRun.startedAt).toLocaleString(locale),
+                  message: (lastRun.messageKey
+                    ? translate(language, lastRun.messageKey, lastRun.messageParams)
+                    : translateDiagnostic(language, lastRun.message)) +
+                    (lastRun.issue ? ` ${translateDiagnostic(language, lastRun.issue)}` : ""),
+                })
+              : t("noBackgroundRuns")}
           </ThemedText>
           {lastRun?.status === "running" && (
-            <ThemedText style={styles.monitorDetails}>Завершение ещё не записано: проверка выполняется или была прервана системой.</ThemedText>
+            <ThemedText style={styles.monitorDetails}>{t("unfinishedRun")}</ThemedText>
           )}
           {lastRun?.notification === "scheduled" && (
-            <ThemedText style={styles.monitorDetails}>Уведомление передано системе для показа.</ThemedText>
+            <ThemedText style={styles.monitorDetails}>{t("notificationScheduled")}</ThemedText>
           )}
           {Platform.OS !== "web" && (
             <TouchableOpacity accessibilityRole="button" onPress={() => {
-              void Linking.openSettings().catch(() => Alert.alert("Настройки", "Откройте настройки приложения вручную."));
+              void Linking.openSettings().catch(() => Alert.alert(t("settings"), t("openSettingsManually")));
             }}>
-              <ThemedText type="link">Открыть настройки приложения</ThemedText>
+              <ThemedText type="link">{t("openSettings")}</ThemedText>
             </TouchableOpacity>
           )}
         </ThemedView>
@@ -296,19 +305,17 @@ export default function HomeScreen() {
           <ThemedView style={styles.monitorStatus}>
             <ThemedView style={styles.backgroundTestRow}>
               <ThemedText style={styles.backgroundTestText}>
-                Тест фонового мониторинга
+                {t("backgroundTest")}
               </ThemedText>
               <Switch
                 value={isBackgroundTestEnabled}
                 disabled={isMonitorBusy}
                 onValueChange={toggleBackgroundTest}
-                accessibilityLabel="Тест фонового мониторинга"
+                accessibilityLabel={t("backgroundTest")}
               />
             </ThemedView>
             <ThemedText style={styles.monitorDetails}>
-              Включите и сверните приложение: примерно через 15 секунд придёт тест доставки.
-              Затем каждый фактический фоновый запуск сообщит результат или причину пропуска,
-              даже если состояние сети не изменилось. Выключение отменяет ожидающий тест доставки.
+              {t("backgroundTestHint")}
             </ThemedText>
           </ThemedView>
         )}
@@ -331,7 +338,8 @@ const styles = StyleSheet.create({
   },
   header: {
     textAlign: "center",
-    marginTop: 28,
+    marginTop: 8,
+    paddingHorizontal: 24,
     marginBottom: 6,
   },
   description: {

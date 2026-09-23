@@ -6,11 +6,31 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import { useEffect, useState } from "react";
+import { AppState } from "react-native";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useLocalization } from "@/hooks/useLocalization";
+import { initializeLanguage, refreshSystemLanguage } from "@/utils/localization";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { t } = useLocalization();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void initializeLanguage().then(() => { if (active) setReady(true); });
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshSystemLanguage();
+    });
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  if (!ready) return null;
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -19,7 +39,7 @@ export default function RootLayout() {
           name="index"
           options={{
             headerShown: false,
-            title: "Тест белых списков",
+            title: t("appTitle"),
           }}
         />
       </Stack>

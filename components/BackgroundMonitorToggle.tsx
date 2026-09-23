@@ -1,3 +1,4 @@
+import { useLocalization } from '@/hooks/useLocalization';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -27,6 +28,7 @@ export function BackgroundMonitorToggle({
   disabled,
   isTestEnabled,
 }: BackgroundMonitorToggleProps) {
+  const { t } = useLocalization();
   const isDark = useColorScheme() === 'dark';
   const [sliderWidth, setSliderWidth] = useState(1);
   const [draftInterval, setDraftInterval] = useState(intervalMinutes);
@@ -53,7 +55,7 @@ export function BackgroundMonitorToggle({
     <ThemedView style={[styles.container, isDark && darkStyles.container]}>
       <TouchableOpacity style={styles.toggleRow} onPress={onToggle} activeOpacity={0.7}
         disabled={disabled} accessibilityRole="switch"
-        accessibilityState={{ checked: isEnabled, disabled }} accessibilityLabel="Фоновый мониторинг">
+        accessibilityState={{ checked: isEnabled, disabled }} accessibilityLabel={t('backgroundMonitoring')}>
         <View style={styles.leftContent}>
           <View style={[styles.iconContainer, isEnabled && styles.iconContainerActive,
             isDark && (isEnabled ? darkStyles.activeControl : darkStyles.iconContainer)]}>
@@ -64,11 +66,11 @@ export function BackgroundMonitorToggle({
             />
           </View>
           <View style={styles.textContainer}>
-            <ThemedText type="defaultSemiBold" style={styles.title}>Фоновый мониторинг</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.title}>{t('backgroundMonitoring')}</ThemedText>
             <ThemedText style={styles.description}>
               {isEnabled
-                ? `Включён — интервал от ${intervalMinutes} мин.`
-                : 'Выключен — нажмите для включения'}
+                ? t('monitorEnabled', { minutes: intervalMinutes })
+                : t('monitorDisabled')}
             </ThemedText>
           </View>
         </View>
@@ -80,15 +82,15 @@ export function BackgroundMonitorToggle({
 
       <View style={[styles.intervalContainer, !intervalEnabled && styles.disabled]}>
         <View style={styles.intervalHeader}>
-          <ThemedText style={styles.intervalLabel}>Интервал проверки</ThemedText>
-          <ThemedText type="defaultSemiBold">{draftInterval} мин.</ThemedText>
+          <ThemedText style={styles.intervalLabel}>{t('checkInterval')}</ThemedText>
+          <ThemedText type="defaultSemiBold">{t('minutes', { count: draftInterval })}</ThemedText>
         </View>
         <View
           style={[styles.sliderTouchArea, !intervalEnabled && styles.hiddenSlider]}
           onLayout={(event) => setSliderWidth(event.nativeEvent.layout.width)}
           accessible
           accessibilityRole="adjustable"
-          accessibilityLabel="Минимальный интервал фоновой проверки"
+          accessibilityLabel={t('minimumInterval')}
           accessibilityState={{ disabled: !intervalEnabled }}
           accessibilityValue={{ min: MIN_INTERVAL, max: MAX_INTERVAL, now: draftInterval }}
           accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
@@ -110,8 +112,8 @@ export function BackgroundMonitorToggle({
           </View>
         </View>
         <View style={[styles.rangeLabels, !intervalEnabled && styles.hiddenSlider]}>
-          <ThemedText style={styles.rangeText}>{MIN_INTERVAL} мин.</ThemedText>
-          <ThemedText style={styles.rangeText}>30 мин.</ThemedText>
+          <ThemedText style={styles.rangeText}>{t('minutes', { count: MIN_INTERVAL })}</ThemedText>
+          <ThemedText style={styles.rangeText}>{t('minutes', { count: MAX_INTERVAL })}</ThemedText>
         </View>
       </View>
     </ThemedView>

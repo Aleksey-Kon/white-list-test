@@ -1,3 +1,5 @@
+import { getLanguage, initializeLanguage } from "../utils/localization";
+import { translate, TranslationKey, TranslationParams, translations } from "../utils/translations";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as BackgroundTask from "expo-background-task";
 import * as Network from "expo-network";
@@ -40,6 +42,9 @@ export interface MonitorRun {
   completedAt?: string;
   status: "running" | "checked" | "skipped" | "error";
   message: string;
+  messageKey?: TranslationKey;
+  messageParams?: TranslationParams;
+  issue?: string;
   notification: "none" | "scheduled" | "blocked";
 }
 
@@ -67,9 +72,10 @@ if (Platform.OS !== "web") {
 }
 
 async function ensureChannel() {
+  await initializeLanguage();
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: "Проверка белых списков",
+      name: translate(getLanguage(), "notificationChannel"),
       importance: Notifications.AndroidImportance.HIGH,
       sound: "default",
     });
@@ -95,7 +101,7 @@ async function notificationIssue(request: boolean): Promise<string | null> {
     });
   }
   if (!permissionsGranted(permissions)) {
-    return "Уведомления запрещены. Разрешите их в настройках приложения.";
+    return "notificationsDenied";
   }
   if (Platform.OS === "android") {
     const channel = await Notifications.getNotificationChannelAsync(CHANNEL_ID);
@@ -103,7 +109,7 @@ async function notificationIssue(request: boolean): Promise<string | null> {
       !channel ||
       channel.importance === Notifications.AndroidImportance.NONE
     ) {
-      return "Канал «Проверка белых списков» отключён. Включите его в настройках уведомлений.";
+      return "channelDisabled";
     }
   }
   return null;
@@ -111,13 +117,13 @@ async function notificationIssue(request: boolean): Promise<string | null> {
 
 async function backgroundIssue(): Promise<string | null> {
   if (Platform.OS === "web" || !(await TaskManager.isAvailableAsync())) {
-    return "Фоновый мониторинг доступен в установленной APK/iOS-сборке, не в Expo Go или браузере.";
+    return "backgroundUnsupported";
   }
   if (
     (await BackgroundTask.getStatusAsync()) !==
     BackgroundTask.BackgroundTaskStatus.Available
   ) {
-    return "Фоновые задачи недоступны. Проверьте фоновое обновление в настройках телефона и используйте установленную сборку.";
+    return "backgroundUnavailable";
   }
   return null;
 }
@@ -171,18 +177,19 @@ async function syncRegistration(settings: MonitorSettings) {
       minimumInterval: settings.intervalMinutes,
     });
     if (!(await TaskManager.isTaskRegisteredAsync(BACKGROUND_MONITOR_TASK))) {
-      throw new Error("Система не зарегистрировала фоновую задачу.");
+      throw new Error("registrationFailed");
     }
   }
 }
 
 async function scheduleDeliveryTest() {
+  await initializeLanguage();
   await Notifications.cancelScheduledNotificationAsync(TEST_NOTIFICATION_ID);
   await Notifications.scheduleNotificationAsync({
     identifier: TEST_NOTIFICATION_ID,
     content: {
-      title: "Тест доставки уведомлений",
-      body: "Доставка работает. Это проверочное уведомление; результат фоновой проверки сайтов придёт отдельно после запуска системой.",
+      title: translate(getLanguage(), "deliveryTestTitle"),
+      body: translate(getLanguage(), "deliveryTestBody"),
       sound: "default",
       data: { kind: "delivery-test" },
     },
@@ -285,8 +292,18 @@ export async function getMonitorSnapshot(): Promise<MonitorSnapshot> {
         typeof parsed.message === "string" &&
         ["running", "checked", "skipped", "error"].includes(parsed.status) &&
         ["none", "scheduled", "blocked"].includes(parsed.notification)
-      )
-        lastRun = parsed;
+      ) {
+        const validRun: MonitorRun = parsed;
+        if (typeof validRun.messageKey !== "string" || !Object.hasOwn(translations.en, validRun.messageKey)) {
+          delete validRun.messageKey;
+        }
+        if (!validRun.messageParams || typeof validRun.messageParams !== "object" ||
+            !Object.values(validRun.messageParams).every((value) => typeof value === "string" || typeof value === "number")) {
+          delete validRun.messageParams;
+        }
+        if (typeof validRun.issue !== "string") delete validRun.issue;
+        lastRun = validRun;
+      }
     } catch {
       /* Ignore an incomplete legacy record. */
     }
@@ -298,21 +315,22 @@ async function saveRun(run: MonitorRun) {
   await AsyncStorage.setItem(RUN_KEY, JSON.stringify(run));
 }
 
-async function checkSites(): Promise<{
-  message: string;
-  hasWhitelist?: boolean;
-}> {
+function diagnostic(messageKey: TranslationKey, messageParams?: TranslationParams) {
+  return { message: translate("ru", messageKey, messageParams), messageKey, messageParams };
+}
+
+async function checkSites(): Promise<ReturnType<typeof diagnostic> & { hasWhitelist?: boolean }> {
   console.info("[BackgroundMonitor] Reading network state");
   const network = await Network.getNetworkStateAsync();
   console.info("[BackgroundMonitor] Network state", JSON.stringify(network));
   const { isVpnActive } = await import("react-native-vpn-detector");
-  if (isVpnActive()) return { message: "Проверка пропущена: отключите VPN." };
+  if (isVpnActive()) return { ...diagnostic("vpnSkipped") };
   if (
     network.type !== Network.NetworkStateType.CELLULAR ||
     network.isConnected === false
   ) {
     return {
-      message: "Проверка пропущена: нужен мобильный интернет без Wi-Fi.",
+      ...diagnostic("cellularSkipped"),
     };
   }
   // Do not trust isInternetReachable: its probe can itself be blocked by a whitelist.
@@ -329,15 +347,13 @@ async function checkSites(): Promise<{
   const state = classifyConnectivity(accessible, controls);
   if (state === "offline")
     return {
-      message:
-        "Ни один контрольный сайт не доступен. Нельзя отличить белый список от отсутствия интернета.",
+      ...diagnostic("offlineCheck"),
     };
   return {
     hasWhitelist: state === "whitelist",
-    message:
-      state === "whitelist"
-        ? "Возможен белый список: нейтральные сайты недоступны, контрольные российские сайты доступны."
-        : `Нейтральные сайты доступны: ${accessible}/${NEUTRAL_SITES.length}. Белый список не обнаружен.`,
+    ...diagnostic(state === "whitelist" ? "restrictedCheck" : "unrestrictedCheck", {
+      accessible, total: NEUTRAL_SITES.length,
+    }),
   };
 }
 
@@ -345,10 +361,11 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
   const run: MonitorRun = {
     startedAt: new Date().toISOString(),
     status: "running",
-    message: "Фоновая проверка началась.",
+    ...diagnostic("checkStarted"),
     notification: "none",
   };
   try {
+    await initializeLanguage();
     const settings = await readMonitorSettings();
     if (!settings.isEnabled && !settings.isTestEnabled)
       return BackgroundTask.BackgroundTaskResult.Success;
@@ -359,6 +376,8 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
     const result = await checkSites();
     run.status = result.hasWhitelist === undefined ? "skipped" : "checked";
     run.message = result.message;
+    run.messageKey = result.messageKey;
+    run.messageParams = result.messageParams;
     // A check can finish after the user disables monitoring.
     const current = await readMonitorSettings();
     const previous = await AsyncStorage.getItem(STATE_KEY);
@@ -371,17 +390,17 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
       const issue = await notificationIssue(false);
       if (issue) {
         run.notification = "blocked";
-        run.message += ` ${issue}`;
+        run.issue = issue;
       } else {
         await Notifications.scheduleNotificationAsync({
           content: {
             title:
               result.hasWhitelist === undefined
-                ? "Фоновая проверка: пропуск"
+                ? translate(getLanguage(), "checkSkippedTitle")
                 : result.hasWhitelist
-                  ? "Возможен белый список"
-                  : "Белый список не обнаружен",
-            body: result.message,
+                  ? translate(getLanguage(), "restrictedTitle")
+                  : translate(getLanguage(), "unrestrictedTitle"),
+            body: translate(getLanguage(), result.messageKey, result.messageParams),
             sound: "default",
             data: { kind: "background-check", startedAt: run.startedAt },
           },
@@ -400,6 +419,9 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
   } catch (error) {
     run.status = "error";
     run.message = monitorError(error);
+    delete run.messageKey;
+    delete run.messageParams;
+    delete run.issue;
     run.completedAt = new Date().toISOString();
     try {
       await saveRun(run);

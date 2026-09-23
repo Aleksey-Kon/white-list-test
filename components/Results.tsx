@@ -1,3 +1,4 @@
+import { useLocalization } from "@/hooks/useLocalization";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
@@ -18,6 +19,7 @@ interface ResultsProps {
 type SectionKey = "whitelist" | "russian" | "neutral" | "custom";
 
 export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSite, onCustomSiteInputFocus }: ResultsProps) {
+  const { t, locale } = useLocalization();
   const isDark = useColorScheme() === "dark";
   const [customSiteInput, setCustomSiteInput] = useState("");
   const [expandedSections, setExpandedSections] = useState<
@@ -48,22 +50,22 @@ export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSi
   const sections: { key: SectionKey; title: string; sites: SiteResult[] }[] = [
     {
       key: "whitelist",
-      title: "📋 Белый список РФ",
+      title: t("whitelistSection"),
       sites: result.whitelistResults,
     },
     {
       key: "russian",
-      title: "🇷🇺 Другие российские сайты",
+      title: t("russianSection"),
       sites: result.russianResults,
     },
     {
       key: "neutral",
-      title: "🌍 Нейтральные зарубежные сайты",
+      title: t("neutralSection"),
       sites: result.neutralResults,
     },
     {
       key: "custom",
-      title: "🔗 Пользовательские сайты",
+      title: t("customSection"),
       sites: customSiteResults,
     },
   ];
@@ -73,11 +75,11 @@ export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSi
       {/* Главный результат */}
       <View style={styles.mainResult}>
         <ThemedText type="defaultSemiBold" style={styles.mainResultTitle}>
-          Результат теста
+          {t("testResult")}
         </ThemedText>
         {result.noInternet ? (
           <View style={[styles.statusBadge, styles.noInternetBadge, isDark && darkStyles.noInternetBadge]}>
-            <ThemedText style={styles.statusText}>❌ Нет интернета</ThemedText>
+            <ThemedText style={styles.statusText}>{t("noInternet")}</ThemedText>
           </View>
         ) : (
           <View
@@ -91,13 +93,13 @@ export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSi
           >
             <ThemedText style={styles.statusText}>
               {result.hasWhitelist
-                ? "⚠️ Обнаружены белые списки!"
-                : "✅ Белые списки не обнаружены"}
+                ? t("whitelistDetected")
+                : t("noWhitelist")}
             </ThemedText>
           </View>
         )}
         <ThemedText style={[styles.timestamp, isDark && darkStyles.secondaryText]}>
-          {result.timestamp.toLocaleString("ru-RU")}
+          {result.timestamp.toLocaleString(locale)}
         </ThemedText>
       </View>
 
@@ -108,21 +110,21 @@ export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSi
             {result.whitelistResults.filter((r) => r.accessible).length}/
             {result.whitelistResults.length}
           </ThemedText>
-          <ThemedText style={styles.statLabel}>Белый список РФ</ThemedText>
+          <ThemedText style={styles.statLabel}>{t("whitelistSites")}</ThemedText>
         </View>
         <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.russianResults.filter((r) => r.accessible).length}/
             {result.russianResults.length}
           </ThemedText>
-          <ThemedText style={styles.statLabel}>Российские сайты</ThemedText>
+          <ThemedText style={styles.statLabel}>{t("russianSites")}</ThemedText>
         </View>
         <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.neutralResults.filter((r) => r.accessible).length}/
             {result.neutralResults.length}
           </ThemedText>
-          <ThemedText style={styles.statLabel}>Нейтральные сайты</ThemedText>
+          <ThemedText style={styles.statLabel}>{t("neutralSites")}</ThemedText>
         </View>
       </View>
 
@@ -179,7 +181,7 @@ export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSi
             autoCorrect={false}
             keyboardType="url"
             style={[styles.addSiteInput, isDark && darkStyles.addSiteInput]}
-            accessibilityLabel="Адрес пользовательского сайта"
+            accessibilityLabel={t("customSiteAddress")}
           />
           <TouchableOpacity
             style={[styles.addSiteButton, isDark && darkStyles.addSiteButton]}
@@ -188,7 +190,7 @@ export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSi
             }}
             activeOpacity={0.8}
           >
-            <ThemedText style={styles.addSiteButtonText}>Добавить сайт</ThemedText>
+            <ThemedText style={styles.addSiteButtonText}>{t("addSite")}</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -205,6 +207,7 @@ function SiteResultRow({
   canRemove: boolean;
   onRemove: (site: string) => Promise<boolean>;
 }) {
+  const { t } = useLocalization();
   const isDark = useColorScheme() === "dark";
   return (
     <View style={[styles.siteRow, isDark && darkStyles.siteRow]}>
@@ -223,13 +226,13 @@ function SiteResultRow({
           onPress={() => void onRemove(site.url)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={`Удалить сайт ${site.url}`}
+          accessibilityLabel={t("removeSite", { site: site.url })}
         >
           <Ionicons name="trash-outline" size={20} color="#D64545" />
         </TouchableOpacity>
       )}
       <ThemedText style={[styles.siteTime, isDark && darkStyles.secondaryText]}>
-        {site.pending ? "" : site.accessible && site.responseTime ? `${site.responseTime}ms` : "-"}
+        {site.pending ? "" : site.accessible && site.responseTime ? t("milliseconds", { count: site.responseTime }) : "-"}
       </ThemedText>
     </View>
   );
