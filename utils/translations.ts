@@ -1,5 +1,7 @@
 export const translations = {
   ru: {
+    switchToLightTheme: "Включить светлую тему",
+    switchToDarkTheme: "Включить тёмную тему",
     appTitle: "Тест белых списков",
     appDescription: "Проверка наличия белых списков на мобильном интернете",
     error: "Ошибка",
@@ -88,6 +90,8 @@ export const translations = {
     vpn: "VPN",
   },
   en: {
+    switchToLightTheme: "Switch to light theme",
+    switchToDarkTheme: "Switch to dark theme",
     appTitle: "Whitelist test",
     appDescription: "Check for whitelist restrictions on mobile data",
     error: "Error",

@@ -1,9 +1,10 @@
 import { useLocalization } from "@/hooks/useLocalization";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { translateDiagnostic, translate } from "@/utils/translations";
 import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
 import { NetworkInfoDisplay } from "@/components/NetworkInfo";
@@ -219,7 +220,10 @@ export default function HomeScreen() {
           onLayout={keepCustomSiteInputVisible}
           onContentSizeChange={keepCustomSiteInputVisible}
         >
-        <LanguageSwitcher />
+        <View style={styles.headerControls}>
+          <ThemeSwitcher />
+          <LanguageSwitcher />
+        </View>
         {/* Заголовок */}
         <ThemedText type="title" style={styles.header}>
           {t("appTitle")}
@@ -326,6 +330,14 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerControls: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 24,
+    marginTop: 8,
+  },
   container: {
     flex: 1,
   },

@@ -12,6 +12,7 @@ import { AppState } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useLocalization } from "@/hooks/useLocalization";
 import { initializeLanguage, refreshSystemLanguage } from "@/utils/localization";
+import { initializeTheme } from "@/utils/themePreference";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -20,7 +21,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     let active = true;
-    void initializeLanguage().then(() => { if (active) setReady(true); });
+    void Promise.all([initializeLanguage(), initializeTheme()]).then(() => { if (active) setReady(true); });
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") refreshSystemLanguage();
     });
@@ -43,7 +44,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
     </ThemeProvider>
   );
 }

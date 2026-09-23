@@ -34,9 +34,6 @@ export function LanguageSwitcher() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignSelf: 'flex-end',
-    marginRight: 24,
-    marginTop: 8,
     gap: 2,
     padding: 2,
     borderRadius: 999,
@@ -58,13 +55,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 999,
   },
-  selected: { backgroundColor: '#4CAF50' },
+  selected: { backgroundColor: '#2196F3' },
   label: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: '#526174' },
   selectedLabel: { color: '#FFFFFF' },
 });
 
 const darkStyles = StyleSheet.create({
   container: { backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border },
-  selected: { backgroundColor: Colors.dark.controlActive },
+  selected: { backgroundColor: Colors.dark.button },
   label: { color: Colors.dark.icon },
 });
