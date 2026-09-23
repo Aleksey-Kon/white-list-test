@@ -15,7 +15,8 @@ import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
 import { loadCustomSites, normalizeCustomSite, removeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
 
-const SHOW_BACKGROUND_TEST = false;
+const SHOW_BACKGROUND_TEST = true;
+const SHOW_BACKGROUND = true;
 
 export default function HomeScreen() {
   const isDark = useColorScheme() === "dark";
@@ -227,6 +228,8 @@ export default function HomeScreen() {
         <NetworkInfoDisplay networkInfo={networkInfo} />
 
         {/* Фоновый мониторинг */}
+
+        {SHOW_BACKGROUND && (
         <BackgroundMonitorToggle
           isEnabled={isMonitorEnabled}
           intervalMinutes={intervalMinutes}
@@ -234,8 +237,10 @@ export default function HomeScreen() {
           onToggle={toggleMonitor}
           disabled={isMonitorBusy}
           isTestEnabled={isBackgroundTestEnabled}
-        />
+        />        
+        )}
 
+        {SHOW_BACKGROUND && (
         <ThemedView style={[styles.batteryWarning, isDark && darkStyles.batteryWarning]}>
           <ThemedText style={[styles.batteryWarningText, isDark && darkStyles.batteryWarningText]}>
             Система выбирает время запуска: от {intervalMinutes} минут, иногда дольше.
@@ -243,6 +248,8 @@ export default function HomeScreen() {
             В настройках батареи разрешите приложению работу в фоне.
           </ThemedText>
         </ThemedView>
+        )}
+       
 
         {SHOW_BACKGROUND_TEST && (
         <ThemedView style={styles.monitorStatus}>
