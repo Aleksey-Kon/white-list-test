@@ -4,13 +4,15 @@ const { loadTypescript } = require('./loadTypescript.cjs');
 
 function setup(options = {}) {
   const storage = new Map(Object.entries(options.storage ?? {}));
+  const nativeThemes = [];
   const theme = loadTypescript('utils/themePreference.ts', {
+    './nativeTheme': { synchronizeNativeTheme: options.synchronizeNativeTheme ?? (async (value) => { nativeThemes.push(value); }) },
     '@react-native-async-storage/async-storage': {
       getItem: options.getItem ?? (async (key) => storage.get(key) ?? null),
       setItem: options.setItem ?? (async (key, value) => { storage.set(key, value); }),
     },
   });
-  return { theme, storage };
+  return { theme, storage, nativeThemes };
 }
 
 test('theme follows the system until a valid preference is saved', async () => {
@@ -30,6 +32,8 @@ test('manual theme selection is restored on restart', async () => {
   const restarted = setup({ storage: Object.fromEntries(h.storage) });
   await restarted.theme.initializeTheme();
   assert.equal(restarted.theme.getThemePreference(), 'dark');
+  assert.deepEqual(h.nativeThemes, ['dark']);
+  assert.deepEqual(restarted.nativeThemes, ['dark']);
 });
 
 test('late loading cannot overwrite a new theme selection', async () => {
@@ -80,4 +84,30 @@ test('failed preference loading leaves the system default available', async (t) 
   const { theme } = setup({ getItem: async () => { throw new Error('storage failed'); } });
   await theme.initializeTheme();
   assert.equal(theme.getThemePreference(), null);
+});
+
+test('native synchronization failure does not prevent saved theme restoration', async (t) => {
+  t.mock.method(console, 'warn', () => {});
+  const { theme, storage } = setup({ synchronizeNativeTheme: async () => { throw new Error('native unavailable'); } });
+  await theme.setTheme('dark');
+  assert.equal(storage.get('app-theme'), 'dark');
+  assert.equal(theme.getThemePreference(), 'dark');
+});
+
+test('native theme updates stay ordered when a switch follows startup restoration', async () => {
+  const nativeThemes = [];
+  let finishFirst;
+  const { theme } = setup({ storage: { 'app-theme': 'dark' }, synchronizeNativeTheme: (value) => {
+    nativeThemes.push(value);
+    return nativeThemes.length === 1 ? new Promise((resolve) => { finishFirst = resolve; }) : Promise.resolve();
+  } });
+  const startup = theme.initializeTheme();
+  await Promise.resolve();
+  await Promise.resolve();
+  const switching = theme.setTheme('light');
+  assert.deepEqual(nativeThemes, ['dark']);
+  finishFirst();
+  await Promise.all([startup, switching]);
+  assert.deepEqual(nativeThemes, ['dark', 'light']);
+  assert.equal(theme.getThemePreference(), 'light');
 });
