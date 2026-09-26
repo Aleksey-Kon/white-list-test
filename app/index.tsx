@@ -3,20 +3,20 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { translateDiagnostic, translate } from "@/utils/translations";
 import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NetworkInfoDisplay } from "@/components/NetworkInfo";
 import { Results } from "@/components/Results";
 import { TestButton } from "@/components/TestButton";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
+import { translate, translateDiagnostic } from "@/utils/translations";
 import { loadCustomSites, normalizeCustomSite, removeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
 
 const SHOW_BACKGROUND_TEST = true;
@@ -249,7 +249,7 @@ export default function HomeScreen() {
         />        
         )}
 
-        {SHOW_BACKGROUND && (
+        {SHOW_BACKGROUND && isMonitorEnabled && (
         <ThemedView style={[styles.batteryWarning, isDark && darkStyles.batteryWarning]}>
           <ThemedText style={[styles.batteryWarningText, isDark && darkStyles.batteryWarningText]}>
             {t("batteryHint", { minutes: intervalMinutes })}
