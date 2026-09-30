@@ -7,9 +7,12 @@ export const translations = {
     error: "Ошибка",
     testError: "Произошла ошибка во время теста",
     warning: "Внимание",
-    wifiVpnWarning: "Обнаружены WiFi и VPN одновременно. Для корректного теста: Отключите WiFi, Отключите VPN. Продолжить?",
-    vpnWarning: "Обнаружен активный VPN. Для корректного теста отключите VPN. Продолжить?",
-    cellularWarning: "Для корректного теста подключитесь к мобильному интернету и отключите WiFi. Продолжить?",
+    wifiVpnWarning:
+      "Обнаружены WiFi и VPN одновременно. Для корректного теста: Отключите WiFi, Отключите VPN. Продолжить?",
+    vpnWarning:
+      "Обнаружен активный VPN. Для корректного теста отключите VPN. Продолжить?",
+    cellularWarning:
+      "Для корректного теста подключитесь к мобильному интернету и отключите WiFi. Продолжить?",
     cancel: "Отмена",
     continue: "Продолжить",
     invalidSite: "Введите корректный адрес сайта.",
@@ -20,12 +23,18 @@ export const translations = {
     checkingSettings: "Проверяем настройки…",
     taskRegistered: "Фоновая задача зарегистрирована",
     taskNotRegistered: "Фоновая задача не зарегистрирована",
-    noBackgroundRuns: "Фоновых запусков пока нет. Сверните приложение и дождитесь запуска системой.",
-    unfinishedRun: "Завершение ещё не записано: проверка выполняется или была прервана системой.",
+    noBackgroundRuns:
+      "Фоновых запусков пока нет. Сверните приложение и дождитесь запуска системой.",
+    unfinishedRun:
+      "Завершение ещё не записано: проверка выполняется или была прервана системой.",
     notificationScheduled: "Уведомление передано системе для показа.",
     settings: "Настройки",
     openSettingsManually: "Откройте настройки приложения вручную.",
     openSettings: "Открыть настройки приложения",
+    backgroundSettingsAction: "Настроить фоновую работу",
+    backgroundSettingsTitle: "Разрешите работу в фоне",
+    backgroundSettingsMessage:
+      "В настройках батареи выберите для приложения режим «Нет ограничений». На Xiaomi также включите автозапуск и разрешите фоновую работу. Не используйте принудительную остановку приложения.",
     backgroundTest: "Тест фонового мониторинга",
     backgroundMonitoring: "Фоновый мониторинг",
     monitorDisabled: "Выключен — нажмите для включения",
@@ -56,29 +65,39 @@ export const translations = {
     check: "Проверка",
     testing: "Тестирование...",
     notificationChannel: "Проверка белых списков",
-    notificationsDenied: "Уведомления запрещены. Разрешите их в настройках приложения.",
-    channelDisabled: "Канал «Проверка белых списков» отключён. Включите его в настройках уведомлений.",
-    backgroundUnsupported: "Фоновый мониторинг доступен в установленной APK/iOS-сборке, не в Expo Go или браузере.",
-    backgroundUnavailable: "Фоновые задачи недоступны. Проверьте фоновое обновление в настройках телефона и используйте установленную сборку.",
+    notificationsDenied:
+      "Уведомления запрещены. Разрешите их в настройках приложения.",
+    channelDisabled:
+      "Канал «Проверка белых списков» отключён. Включите его в настройках уведомлений.",
+    backgroundUnsupported:
+      "Фоновый мониторинг доступен в установленной APK/iOS-сборке, не в Expo Go или браузере.",
+    backgroundUnavailable:
+      "Фоновые задачи недоступны. Проверьте фоновое обновление в настройках телефона и используйте установленную сборку.",
     registrationFailed: "Система не зарегистрировала фоновую задачу.",
     deliveryTestTitle: "Тест доставки уведомлений",
-    deliveryTestBody: "Доставка работает. Это проверочное уведомление; результат фоновой проверки сайтов придёт отдельно после запуска системой.",
+    deliveryTestBody:
+      "Доставка работает. Это проверочное уведомление; результат фоновой проверки сайтов придёт отдельно после запуска системой.",
     vpnSkipped: "Проверка пропущена: отключите VPN.",
     cellularSkipped: "Проверка пропущена: нужен мобильный интернет без Wi-Fi.",
-    offlineCheck: "Ни один контрольный сайт не доступен. Нельзя отличить белый список от отсутствия интернета.",
-    restrictedCheck: "Возможен белый список: нейтральные сайты недоступны, контрольные российские сайты доступны.",
+    offlineCheck:
+      "Ни один контрольный сайт не доступен. Нельзя отличить белый список от отсутствия интернета.",
+    restrictedCheck:
+      "Возможен белый список: нейтральные сайты недоступны, контрольные российские сайты доступны.",
     checkStarted: "Фоновая проверка началась.",
     checkSkippedTitle: "Фоновая проверка: пропуск",
     restrictedTitle: "Возможен белый список",
     unrestrictedTitle: "Белый список не обнаружен",
-    batteryHint: "Система выбирает время запуска: от {minutes} минут, иногда дольше. Для проверки сайтов нужен мобильный интернет без Wi-Fi и VPN. В настройках батареи разрешите приложению работу в фоне.",
-    backgroundTestHint: "Включите и сверните приложение: примерно через 15 секунд придёт тест доставки. Затем каждый фактический фоновый запуск сообщит результат или причину пропуска, даже если состояние сети не изменилось. Выключение отменяет ожидающий тест доставки.",
+    batteryHint:
+      "Система выбирает время запуска: от {minutes} минут, иногда дольше. Для проверки сайтов нужен мобильный интернет без Wi-Fi и VPN. В настройках батареи разрешите приложению работу в фоне.",
+    backgroundTestHint:
+      "Включите и сверните приложение: примерно через 15 секунд придёт тест доставки. Затем каждый фактический фоновый запуск сообщит результат или причину пропуска, даже если состояние сети не изменилось. Выключение отменяет ожидающий тест доставки.",
     lastRun: "Последний фоновый запуск: {date}. {message}",
     monitorEnabled: "Включён — интервал от {minutes} мин.",
     minutes: "{count} мин.",
     milliseconds: "{count} мс",
     removeSite: "Удалить сайт {site}",
-    unrestrictedCheck: "Нейтральные сайты доступны: {accessible}/{total}. Белый список не обнаружен.",
+    unrestrictedCheck:
+      "Нейтральные сайты доступны: {accessible}/{total}. Белый список не обнаружен.",
     cellular: "Мобильный интернет",
     unknown: "Неизвестно",
     none: "Нет подключения",
@@ -97,9 +116,12 @@ export const translations = {
     error: "Error",
     testError: "An error occurred during the test",
     warning: "Warning",
-    wifiVpnWarning: "Wi-Fi and VPN are both active. For accurate results, turn off Wi-Fi and VPN. Continue?",
-    vpnWarning: "A VPN is active. For accurate results, turn off the VPN. Continue?",
-    cellularWarning: "For accurate results, connect to mobile data and turn off Wi-Fi. Continue?",
+    wifiVpnWarning:
+      "Wi-Fi and VPN are both active. For accurate results, turn off Wi-Fi and VPN. Continue?",
+    vpnWarning:
+      "A VPN is active. For accurate results, turn off the VPN. Continue?",
+    cellularWarning:
+      "For accurate results, connect to mobile data and turn off Wi-Fi. Continue?",
     cancel: "Cancel",
     continue: "Continue",
     invalidSite: "Enter a valid website address.",
@@ -110,12 +132,19 @@ export const translations = {
     checkingSettings: "Checking settings…",
     taskRegistered: "Background task registered",
     taskNotRegistered: "Background task not registered",
-    noBackgroundRuns: "No background runs yet. Minimize the app and wait for the system to start a check.",
-    unfinishedRun: "Completion has not been recorded: the check is running or was interrupted by the system.",
-    notificationScheduled: "The notification has been sent to the system for display.",
+    noBackgroundRuns:
+      "No background runs yet. Minimize the app and wait for the system to start a check.",
+    unfinishedRun:
+      "Completion has not been recorded: the check is running or was interrupted by the system.",
+    notificationScheduled:
+      "The notification has been sent to the system for display.",
     settings: "Settings",
     openSettingsManually: "Open the app settings manually.",
     openSettings: "Open app settings",
+    backgroundSettingsAction: "Configure background activity",
+    backgroundSettingsTitle: "Allow background activity",
+    backgroundSettingsMessage:
+      "In battery settings, set the app to Unrestricted. On Xiaomi, also enable Autostart and allow background activity. Do not force-stop the app.",
     backgroundTest: "Background monitoring test",
     backgroundMonitoring: "Background monitoring",
     monitorDisabled: "Off — tap to enable",
@@ -146,29 +175,39 @@ export const translations = {
     check: "Check",
     testing: "Testing...",
     notificationChannel: "Whitelist monitoring",
-    notificationsDenied: "Notifications are disabled. Enable them in the app settings.",
-    channelDisabled: "The whitelist monitoring channel is disabled. Enable it in notification settings.",
-    backgroundUnsupported: "Background monitoring requires an installed APK/iOS build and is unavailable in Expo Go or a browser.",
-    backgroundUnavailable: "Background tasks are unavailable. Check background refresh in device settings and use an installed build.",
+    notificationsDenied:
+      "Notifications are disabled. Enable them in the app settings.",
+    channelDisabled:
+      "The whitelist monitoring channel is disabled. Enable it in notification settings.",
+    backgroundUnsupported:
+      "Background monitoring requires an installed APK/iOS build and is unavailable in Expo Go or a browser.",
+    backgroundUnavailable:
+      "Background tasks are unavailable. Check background refresh in device settings and use an installed build.",
     registrationFailed: "The system did not register the background task.",
     deliveryTestTitle: "Notification delivery test",
-    deliveryTestBody: "Delivery works. This is a test notification; the background site check result will arrive separately after the system runs it.",
+    deliveryTestBody:
+      "Delivery works. This is a test notification; the background site check result will arrive separately after the system runs it.",
     vpnSkipped: "Check skipped: turn off the VPN.",
     cellularSkipped: "Check skipped: mobile data without Wi-Fi is required.",
-    offlineCheck: "No control sites are reachable. Whitelist restrictions cannot be distinguished from a lack of internet access.",
-    restrictedCheck: "Possible whitelist restrictions: neutral sites are unreachable, but Russian control sites are reachable.",
+    offlineCheck:
+      "No control sites are reachable. Whitelist restrictions cannot be distinguished from a lack of internet access.",
+    restrictedCheck:
+      "Possible whitelist restrictions: neutral sites are unreachable, but Russian control sites are reachable.",
     checkStarted: "Background check started.",
     checkSkippedTitle: "Background check skipped",
     restrictedTitle: "Possible whitelist restrictions",
     unrestrictedTitle: "No whitelist restrictions detected",
-    batteryHint: "The system schedules checks at intervals of at least {minutes} minutes, sometimes longer. Site checks require mobile data without Wi-Fi or VPN. Allow background activity for this app in battery settings.",
-    backgroundTestHint: "Enable this and minimize the app: a delivery test should arrive in about 15 seconds. Each actual background run will then report its result or why it was skipped, even if the network state has not changed. Turning this off cancels the pending delivery test.",
+    batteryHint:
+      "The system schedules checks at intervals of at least {minutes} minutes, sometimes longer. Site checks require mobile data without Wi-Fi or VPN. Allow background activity for this app in battery settings.",
+    backgroundTestHint:
+      "Enable this and minimize the app: a delivery test should arrive in about 15 seconds. Each actual background run will then report its result or why it was skipped, even if the network state has not changed. Turning this off cancels the pending delivery test.",
     lastRun: "Last background run: {date}. {message}",
     monitorEnabled: "On — interval of at least {minutes} min.",
     minutes: "{count} min.",
     milliseconds: "{count} ms",
     removeSite: "Remove site {site}",
-    unrestrictedCheck: "Neutral sites reachable: {accessible}/{total}. No whitelist restrictions detected.",
+    unrestrictedCheck:
+      "Neutral sites reachable: {accessible}/{total}. No whitelist restrictions detected.",
     cellular: "Mobile data",
     unknown: "Unknown",
     none: "No connection",
@@ -184,14 +223,27 @@ export const translations = {
 export type TranslationKey = keyof typeof translations.en;
 export type TranslationParams = Record<string, string | number>;
 
-export function translate(language: 'ru' | 'en', key: TranslationKey, params: TranslationParams = {}): string {
-  return translations[language][key].replace(/\{(\w+)\}/g, (placeholder, name: string) =>
-    Object.hasOwn(params, name) ? String(params[name]) : placeholder);
+export function translate(
+  language: "ru" | "en",
+  key: TranslationKey,
+  params: TranslationParams = {},
+): string {
+  return translations[language][key].replace(
+    /\{(\w+)\}/g,
+    (placeholder, name: string) =>
+      Object.hasOwn(params, name) ? String(params[name]) : placeholder,
+  );
 }
 
 // Also supports diagnostics saved by older versions in Russian.
-export function translateDiagnostic(language: 'ru' | 'en', message: string): string {
-  if (Object.hasOwn(translations.en, message)) return translate(language, message as TranslationKey);
-  const key = (Object.keys(translations.ru) as TranslationKey[]).find((key) => translations.ru[key] === message);
+export function translateDiagnostic(
+  language: "ru" | "en",
+  message: string,
+): string {
+  if (Object.hasOwn(translations.en, message))
+    return translate(language, message as TranslationKey);
+  const key = (Object.keys(translations.ru) as TranslationKey[]).find(
+    (key) => translations.ru[key] === message,
+  );
   return key ? translate(language, key) : message;
 }

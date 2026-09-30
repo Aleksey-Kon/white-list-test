@@ -1,12 +1,12 @@
-import { useLocalization } from '@/hooks/useLocalization';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLocalization } from '@/hooks/useLocalization';
 import { MAX_INTERVAL_MINUTES, MIN_INTERVAL_MINUTES } from '@/utils/backgroundMonitorPolicy';
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface BackgroundMonitorToggleProps {
   isEnabled: boolean;
@@ -49,6 +49,20 @@ export function BackgroundMonitorToggle({
 
   const commitInterval = () => {
     if (intervalEnabled && draft.current !== intervalMinutes) onIntervalChange(draft.current);
+  };
+
+  const openBackgroundSettings = () => {
+    Alert.alert(t('backgroundSettingsTitle'), t('backgroundSettingsMessage'), [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('openSettings'),
+        onPress: () => {
+          void Linking.openSettings().catch(() =>
+            Alert.alert(t('error'), t('openSettingsManually')),
+          );
+        },
+      },
+    ]);
   };
 
   return (
@@ -116,6 +130,15 @@ export function BackgroundMonitorToggle({
           <ThemedText style={styles.rangeText}>{t('minutes', { count: MAX_INTERVAL })}</ThemedText>
         </View>
       </View>
+      {Platform.OS === 'android' && (
+        <TouchableOpacity
+          style={styles.backgroundSettingsButton}
+          onPress={openBackgroundSettings}
+          accessibilityRole="button"
+        >
+          <ThemedText style={styles.backgroundSettingsText}>{t('backgroundSettingsAction')}</ThemedText>
+        </TouchableOpacity>
+      )}
     </ThemedView>
   );
 }
@@ -143,6 +166,8 @@ const styles = StyleSheet.create({
   sliderThumb: { position: 'absolute', top: -7, width: 20, height: 20, borderRadius: 10, marginLeft: -10, backgroundColor: '#4CAF50', elevation: 3 },
   rangeLabels: { flexDirection: 'row', justifyContent: 'space-between' },
   rangeText: { fontSize: 12, opacity: 0.6 },
+  backgroundSettingsButton: { alignSelf: 'flex-start', marginTop: 12, paddingVertical: 6 },
+  backgroundSettingsText: { color: '#2196F3', fontSize: 14, fontWeight: '600' },
   disabled: { opacity: 0.6 },
 });
 
