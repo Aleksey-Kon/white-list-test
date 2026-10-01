@@ -1,0 +1,50 @@
+diff --git a/node_modules/expo-background-task/android/src/main/java/expo/modules/backgroundtask/BackgroundTaskScheduler.kt b/node_modules/expo-background-task/android/src/main/java/expo/modules/backgroundtask/BackgroundTaskScheduler.kt
+--- a/node_modules/expo-background-task/android/src/main/java/expo/modules/backgroundtask/BackgroundTaskScheduler.kt
++++ b/node_modules/expo-background-task/android/src/main/java/expo/modules/backgroundtask/BackgroundTaskScheduler.kt
+@@ -52,7 +52,9 @@
+ 
+     if (numberOfRegisteredTasksOfThisType == 1) {
+       runBlocking {
+-        scheduleWorker(context, context.packageName)
++        // Restoring TaskService in a cold process must not cancel the worker
++        // that started that process, or postpone an already scheduled run.
++        scheduleWorker(context, context.packageName, preserveExisting = true)
+       }
+     }
+   }
+@@ -73,14 +75,14 @@
+   /**
+    * Schedules the worker task to run. The worker should run periodically.
+    */
+-  private suspend fun scheduleWorker(context: Context, appScopeKey: String, cancelExisting: Boolean = true, overriddenIntervalMinutes: Long = intervalMinutes): Boolean {
++  private suspend fun scheduleWorker(context: Context, appScopeKey: String, cancelExisting: Boolean = true, overriddenIntervalMinutes: Long = intervalMinutes, preserveExisting: Boolean = false): Boolean {
+     if (numberOfRegisteredTasksOfThisType == 0) {
+       Log.d(TAG, "Will not enqueue worker. No registered tasks to run.")
+       return false
+     }
+ 
+     // Stop the current worker (if any)
+-    if (cancelExisting) {
++    if (cancelExisting && !preserveExisting) {
+       stopWorker(context)
+     }
+ 
+@@ -122,7 +124,8 @@
+           // This is where we decide if we should cancel or replace the task - cancelling is done
+           // when spawning the first task, while appending is when we spawn from a running task
+           // to set up the next periodic run of the task
+-          if (cancelExisting) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.APPEND,
++          if (preserveExisting) ExistingWorkPolicy.KEEP
++          else if (cancelExisting) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.APPEND,
+           workRequest
+         ).await()
+ 
+@@ -144,7 +147,7 @@
+       return try {
+         workManager.enqueueUniquePeriodicWork(
+           WORKER_IDENTIFIER,
+-          ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
++          if (preserveExisting) ExistingPeriodicWorkPolicy.KEEP else ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+           workRequest
+         ).await()
+ 

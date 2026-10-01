@@ -1,23 +1,106 @@
-import React, { useCallback, useState } from "react";
-import { Alert, ScrollView, StyleSheet } from "react-native";
+import { useLocalization } from "@/hooks/useLocalization";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BackgroundMonitorToggle } from "@/components/BackgroundMonitorToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NetworkInfoDisplay } from "@/components/NetworkInfo";
 import { Results } from "@/components/Results";
 import { TestButton } from "@/components/TestButton";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
+import { translate, translateDiagnostic } from "@/utils/translations";
+import { GitHubButton } from "../components/GitHubButton";
+import { loadCustomSites, normalizeCustomSite, removeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
+
+const SHOW_BACKGROUND_TEST = false;
+const SHOW_BACKGROUND = false;
 
 export default function HomeScreen() {
+  const { t, locale, language } = useLocalization();
+  const isDark = useColorScheme() === "dark";
   const networkInfo = useNetworkInfo();
-  const { isEnabled: isMonitorEnabled, toggleMonitor } = useBackgroundMonitor();
+  const {
+    isEnabled: isMonitorEnabled,
+    isTestEnabled: isBackgroundTestEnabled,
+    intervalMinutes,
+    setIntervalMinutes,
+    toggleMonitor,
+    toggleBackgroundTest,
+    isBusy: isMonitorBusy,
+    isRegistered,
+    lastRun,
+    error: monitorError,
+  } = useBackgroundMonitor();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [customSites, setCustomSites] = useState<string[]>([]);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(() => Keyboard.isVisible());
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollOffset = useRef(0);
+  const scrollOffsetBeforeKeyboard = useRef<number | null>(null);
+
+  const keepCustomSiteInputVisible = useCallback(() => {
+    if (Keyboard.isVisible() && scrollOffsetBeforeKeyboard.current !== null) {
+      // The form is at the bottom; keep both the input and its button visible.
+      scrollViewRef.current?.scrollToEnd({ animated: false });
+    }
+  }, []);
+
+  const handleCustomSiteInputFocus = useCallback(() => {
+    if (scrollOffsetBeforeKeyboard.current === null) {
+      scrollOffsetBeforeKeyboard.current = scrollOffset.current;
+    }
+    keepCustomSiteInputVisible();
+  }, [keepCustomSiteInputVisible]);
+
+  useEffect(() => {
+    // Also handle reopening the Android keyboard while the input retains focus.
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setIsKeyboardVisible(true);
+      handleCustomSiteInputFocus();
+    });
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setIsKeyboardVisible(false);
+      const previousOffset = scrollOffsetBeforeKeyboard.current;
+      scrollOffsetBeforeKeyboard.current = null;
+      if (previousOffset !== null) {
+        scrollViewRef.current?.scrollTo({ y: previousOffset, animated: false });
+      }
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [handleCustomSiteInputFocus]);
+
+  useEffect(() => {
+    void loadCustomSites().then(setCustomSites);
+  }, []);
+
+  const runTest = useCallback(async () => {
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const result = await runFullTest(customSites);
+      setTestResult(result);
+    } catch (error) {
+      console.error("Test error:", error);
+      Alert.alert(t("error"), t("testError"));
+    } finally {
+      setIsTesting(false);
+    }
+  }, [customSites, t]);
 
   const handleTest = useCallback(async () => {
     const hasVpn = networkInfo.isVpn;
@@ -27,12 +110,12 @@ export default function HomeScreen() {
     // Сценарий: WiFi + VPN
     if (hasWifi && hasVpn) {
       Alert.alert(
-        "Внимание",
-        "Обнаружены WiFi и VPN одновременно. Для корректного теста: Отключите WiFi, Отключите VPN. Продолжить?",
+        t("warning"),
+        t("wifiVpnWarning"),
         [
-          { text: "Отмена", style: "cancel" },
+          { text: t("cancel"), style: "cancel" },
           {
-            text: "Продолжить",
+            text: t("continue"),
             onPress: () => runTest(),
           },
         ],
@@ -43,12 +126,12 @@ export default function HomeScreen() {
     // Предупреждение если VPN
     if (hasVpn) {
       Alert.alert(
-        "Внимание",
-        "Обнаружен активный VPN. Для корректного теста отключите VPN. Продолжить?",
+        t("warning"),
+        t("vpnWarning"),
         [
-          { text: "Отмена", style: "cancel" },
+          { text: t("cancel"), style: "cancel" },
           {
-            text: "Продолжить",
+            text: t("continue"),
             onPress: () => runTest(),
           },
         ],
@@ -59,12 +142,12 @@ export default function HomeScreen() {
     // Предупреждение если не мобильный интернет
     if (notCellular) {
       Alert.alert(
-        "Внимание",
-        "Для корректного теста подключитесь к мобильному интернету и отключите WiFi. Продолжить?",
+        t("warning"),
+        t("cellularWarning"),
         [
-          { text: "Отмена", style: "cancel" },
+          { text: t("cancel"), style: "cancel" },
           {
-            text: "Продолжить",
+            text: t("continue"),
             onPress: () => runTest(),
           },
         ],
@@ -73,20 +156,40 @@ export default function HomeScreen() {
     }
 
     await runTest();
-  }, [networkInfo.isCellular, networkInfo.isWifi, networkInfo.isVpn]);
+  }, [networkInfo.isCellular, networkInfo.isWifi, networkInfo.isVpn, runTest, t]);
 
-  const runTest = async () => {
-    setIsTesting(true);
-    setTestResult(null);
+  const handleAddCustomSite = async (value: string): Promise<boolean> => {
+    const site = normalizeCustomSite(value);
+    if (!site) {
+      Alert.alert(t("error"), t("invalidSite"));
+      return false;
+    }
+    if (customSites.includes(site)) {
+      Alert.alert(t("duplicateSiteTitle"), t("duplicateSite"));
+      return false;
+    }
 
+    const nextSites = [...customSites, site];
     try {
-      const result = await runFullTest();
-      setTestResult(result);
+      await saveCustomSites(nextSites);
+      setCustomSites(nextSites);
+      return true;
     } catch (error) {
-      console.error("Test error:", error);
-      Alert.alert("Ошибка", "Произошла ошибка во время теста");
-    } finally {
-      setIsTesting(false);
+      console.error("Custom site save error:", error);
+      Alert.alert(t("error"), t("saveSiteError"));
+      return false;
+    }
+  };
+
+  const handleRemoveCustomSite = async (site: string): Promise<boolean> => {
+    try {
+      await removeCustomSite(site);
+      setCustomSites((currentSites) => currentSites.filter((currentSite) => currentSite !== site));
+      return true;
+    } catch (error) {
+      console.error("Custom site removal error:", error);
+      Alert.alert(t("error"), t("removeSiteError"));
+      return false;
     }
   };
 
@@ -102,55 +205,206 @@ export default function HomeScreen() {
         },
       ]}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        // Android hide-event coordinates can leave a stale height reduction.
+        // Remove the height override entirely when the keyboard is hidden.
+        behavior={Platform.OS === "ios" ? "padding" : isKeyboardVisible ? "height" : undefined}
       >
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={16}
+          onLayout={keepCustomSiteInputVisible}
+          onContentSizeChange={keepCustomSiteInputVisible}
+        >
+        <View style={styles.headerControls}>
+          <GitHubButton />
+          <View style={styles.headerControlGroup}>
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+          </View>
+        </View>
         {/* Заголовок */}
         <ThemedText type="title" style={styles.header}>
-          Тест белых списков
+          {t("appTitle")}
         </ThemedText>
 
         <ThemedText style={styles.description}>
-          Проверка наличия белых списков на мобильном интернете
+          {t("appDescription")}
         </ThemedText>
 
         {/* Информация о сети */}
         <NetworkInfoDisplay networkInfo={networkInfo} />
 
         {/* Фоновый мониторинг */}
+
+        {SHOW_BACKGROUND && (
         <BackgroundMonitorToggle
           isEnabled={isMonitorEnabled}
+          intervalMinutes={intervalMinutes}
+          onIntervalChange={setIntervalMinutes}
           onToggle={toggleMonitor}
-        />
+          disabled={isMonitorBusy}
+          isTestEnabled={isBackgroundTestEnabled}
+        />        
+        )}
+
+        {SHOW_BACKGROUND && isMonitorEnabled && (
+        <ThemedView style={[styles.batteryWarning, isDark && darkStyles.batteryWarning]}>
+          <ThemedText style={[styles.batteryWarningText, isDark && darkStyles.batteryWarningText]}>
+            {t("batteryHint", { minutes: intervalMinutes })}
+          </ThemedText>
+        </ThemedView>
+        )}
+       
+
+        {SHOW_BACKGROUND_TEST && (
+        <ThemedView style={styles.monitorStatus}>
+          <ThemedText>
+            {isMonitorBusy ? t("checkingSettings") : isRegistered
+              ? t("taskRegistered")
+              : t("taskNotRegistered")}
+          </ThemedText>
+          {monitorError && <ThemedText style={[styles.monitorError, isDark && darkStyles.monitorError]}>{translateDiagnostic(language, monitorError)}</ThemedText>}
+          <ThemedText style={styles.monitorDetails}>
+            {lastRun
+              ? t("lastRun", {
+                  date: new Date(lastRun.startedAt).toLocaleString(locale),
+                  message: (lastRun.messageKey
+                    ? translate(language, lastRun.messageKey, lastRun.messageParams)
+                    : translateDiagnostic(language, lastRun.message)) +
+                    (lastRun.issue ? ` ${translateDiagnostic(language, lastRun.issue)}` : ""),
+                })
+              : t("noBackgroundRuns")}
+          </ThemedText>
+          {lastRun?.status === "running" && (
+            <ThemedText style={styles.monitorDetails}>{t("unfinishedRun")}</ThemedText>
+          )}
+          {lastRun?.notification === "scheduled" && (
+            <ThemedText style={styles.monitorDetails}>{t("notificationScheduled")}</ThemedText>
+          )}
+          {Platform.OS !== "web" && (
+            <TouchableOpacity accessibilityRole="button" onPress={() => {
+              void Linking.openSettings().catch(() => Alert.alert(t("settings"), t("openSettingsManually")));
+            }}>
+              <ThemedText type="link">{t("openSettings")}</ThemedText>
+            </TouchableOpacity>
+          )}
+        </ThemedView>
+        )}
 
         {/* Кнопка теста */}
         <TestButton onPress={handleTest} isTesting={isTesting} />
 
         {/* Результаты */}
-        <Results result={testResult} />
-      </ScrollView>
+        <Results
+          result={testResult}
+          customSites={customSites}
+          onAddCustomSite={handleAddCustomSite}
+          onRemoveCustomSite={handleRemoveCustomSite}
+          onCustomSiteInputFocus={handleCustomSiteInputFocus}
+        />
+
+        {SHOW_BACKGROUND_TEST && (
+          <ThemedView style={styles.monitorStatus}>
+            <ThemedView style={styles.backgroundTestRow}>
+              <ThemedText style={styles.backgroundTestText}>
+                {t("backgroundTest")}
+              </ThemedText>
+              <Switch
+                value={isBackgroundTestEnabled}
+                disabled={isMonitorBusy}
+                onValueChange={toggleBackgroundTest}
+                accessibilityLabel={t("backgroundTest")}
+              />
+            </ThemedView>
+            <ThemedText style={styles.monitorDetails}>
+              {t("backgroundTestHint")}
+            </ThemedText>
+          </ThemedView>
+        )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  headerControls: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginHorizontal: 24,
+    marginTop: 8,
+  },
+  headerControlGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   container: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 24,
+    paddingBottom: 32,
   },
   header: {
     textAlign: "center",
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: 8,
+    paddingHorizontal: 24,
+    marginBottom: 6,
   },
   description: {
     textAlign: "center",
     paddingHorizontal: 24,
-    marginBottom: 16,
-    opacity: 0.7,
+    marginBottom: 20,
+    opacity: 0.68,
   },
+  backgroundTestRow: {
+    marginTop: 8,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backgroundTestText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  monitorStatus: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+    gap: 10,
+  },
+  monitorDetails: { fontSize: 13, lineHeight: 19, opacity: 0.72 },
+  monitorError: { color: "#C62828", fontSize: 14, fontWeight: "600" },
+  batteryWarning: {
+    marginHorizontal: 24,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: "#FFF4DB",
+    borderWidth: 1,
+    borderColor: "#F2D49A",
+  },
+  batteryWarningText: {
+    color: "#8A5A00",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
+});
+
+const darkStyles = StyleSheet.create({
+  batteryWarning: { backgroundColor: Colors.dark.warningSurface, borderColor: Colors.dark.warningBorder },
+  batteryWarningText: { color: Colors.dark.warning },
+  monitorError: { color: Colors.dark.error },
 });

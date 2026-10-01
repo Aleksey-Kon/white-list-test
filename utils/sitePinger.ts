@@ -1,9 +1,26 @@
+import { requireOptionalNativeModule } from "expo";
+import { Platform } from "react-native";
+
+// Only this status-only probe accepts invalid certificates. Other app requests
+// continue to use their normal TLS validation.
+const nativeProbe =
+  Platform.OS === "web"
+    ? null
+    : requireOptionalNativeModule<{
+        requestStatus(
+          url: string,
+          method: string,
+          timeoutMs: number,
+        ): Promise<number>;
+      }>("SiteProbe");
+
 // Списки сайтов для тестирования
 export const WHITELIST_RU_SITES = [
-  "https://vk.com",
-  "https://ok.ru",
+  "https://vk.ru",
   "https://yandex.ru",
+  "https://dzen.ru",
   "https://yandex.ru/maps",
+  "https://ok.ru",
   "https://2gis.ru",
   "https://mail.ru",
   "https://rutube.ru",
@@ -11,11 +28,25 @@ export const WHITELIST_RU_SITES = [
   "https://wildberries.ru",
   "https://ozon.ru",
   "https://gosuslugi.ru",
-  "https://sberbank.ru",
-  "https://tbank.ru",
+  "https://samokat.ru",
+  "https://cdek.ru",
+  "https://5ka.ru",
+  "https://alfabank.ru",
   "https://vtb.ru",
-  "https://rbc.ru",
-  "https://ria.ru",
+  "https://hh.ru",
+  "https://mts.ru",
+  "https://megafon.ru",
+  "https://t2.ru",
+  "https://beeline.ru",
+  "https://kuper.ru",
+  "https://music.yandex.ru",
+  "https://kinopoisk.ru",
+  "https://ivi.ru",
+  "https://okko.tv",
+  "https://rzd.ru",
+  "https://aeroflot.ru",
+  "https://tass.ru",
+  "https://kommersant.ru",
   "https://lenta.ru",
 ];
 
@@ -23,15 +54,48 @@ export const RUSSIAN_SITES = [
   "https://habr.com",
   "https://tproger.ru",
   "https://citilink.ru",
-  "https://dns-shop.ru",
-  "https://mvideo.ru",
   "https://lamoda.ru",
   "https://drom.ru",
   "https://auto.ru",
   "https://stepik.org",
+
+  // IT и технологии
+  "https://vc.ru",
+  "https://dtf.ru",
+  "https://www.opennet.ru",
+  "https://www.linux.org.ru",
+  "https://proglib.io",
+  "https://3dnews.ru",
+  "https://www.ixbt.com",
+  "https://overclockers.ru",
+  "https://www.cyberforum.ru",
+
+  // Магазины техники и товаров
+  "https://www.nix.ru",
+  "https://www.regard.ru",
+  "https://www.onlinetrade.ru",
+  "https://www.sportmaster.ru",
+  "https://petrovich.ru",
+
+  // Авто
+  "https://www.drive2.ru",
+
+  // Спорт
+  "https://www.sports.ru",
+  "https://www.championat.com",
+
+  // Образование
   "https://skillbox.ru",
-  "https://kommersant.ru",
-  "https://vedomosti.ru",
+  "https://netology.ru",
+  "https://geekbrains.ru",
+  "https://sky.pro",
+
+  // Книги, сообщества, отзывы, объявления
+  "https://www.litres.ru",
+  "https://pikabu.ru",
+  "https://irecommend.ru",
+  "https://otzovik.com",
+  "https://www.farpost.ru",
 ];
 
 export const NEUTRAL_SITES = [
@@ -44,12 +108,62 @@ export const NEUTRAL_SITES = [
   "https://kernel.org",
   "https://ubuntu.com",
   "https://archlinux.org",
-  "https://reactjs.org",
   "https://nodejs.org",
   "https://google.com",
   "https://amazon.com",
-  "https://vercel.com",
   "https://2ip.io",
+
+  // Дистрибутивы Linux и ОС
+  "https://fedoraproject.org",
+  "https://linuxmint.com",
+  "https://opensuse.org",
+  "https://alpinelinux.org",
+  "https://freebsd.org",
+  "https://gentoo.org",
+  "https://nixos.org",
+
+  // Языки и рантаймы
+  "https://rust-lang.org",
+  "https://go.dev",
+  "https://php.net",
+  "https://ruby-lang.org",
+  "https://deno.com",
+  "https://www.typescriptlang.org",
+  "https://www.postgresql.org",
+
+  // Фреймворки и библиотеки
+  "https://react.dev",
+  "https://svelte.dev",
+  "https://angular.dev",
+  "https://nextjs.org",
+  "https://vite.dev",
+  "https://expressjs.com",
+  "https://www.djangoproject.com",
+  "https://flask.palletsprojects.com",
+  "https://tailwindcss.com",
+
+  // Инструменты и инфраструктура
+  "https://git-scm.com",
+  "https://www.docker.com",
+  "https://kubernetes.io",
+  "https://www.gnu.org",
+  "https://www.apache.org",
+  "https://www.mozilla.org",
+  "https://www.videolan.org",
+  "https://www.blender.org",
+  "https://www.gimp.org",
+  "https://www.libreoffice.org",
+  "https://www.openstreetmap.org",
+  "https://archive.org",
+
+  // Пакетные менеджеры и реестры
+  "https://www.npmjs.com",
+  "https://pypi.org",
+  "https://crates.io",
+  "https://pkg.go.dev",
+  "https://hub.docker.com",
+  "https://sourceforge.net",
+  "https://codeberg.org",
 ];
 
 export interface SiteResult {
@@ -62,6 +176,7 @@ export interface TestResult {
   whitelistResults: SiteResult[];
   russianResults: SiteResult[];
   neutralResults: SiteResult[];
+  customResults: SiteResult[];
   hasWhitelist: boolean;
   noInternet: boolean;
   timestamp: Date;
@@ -86,84 +201,73 @@ function getPingUrl(url: string): string {
  * Проверяет доступность сайта через "ping" запрос (загрузка favicon)
  * Если favicon недоступен, fallback на обычный HTTP запрос
  */
-export async function pingSite(url: string): Promise<SiteResult> {
-  const startTime = Date.now();
-  const pingUrl = getPingUrl(url);
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), PING_TIMEOUT);
-
-    // Пробуем загрузить favicon (как ping)
-    let response: Response;
-    try {
-      response = await fetch(pingUrl, {
-        method: "GET",
-        signal: controller.signal,
-        cache: "no-store",
-        redirect: "follow",
-      });
-    } catch {
-      // Если favicon не загрузился, пробуем HEAD запрос к основному URL
-      const controller2 = new AbortController();
-      const timeoutId2 = setTimeout(() => controller2.abort(), PING_TIMEOUT);
-
-      try {
-        response = await fetch(url, {
-          method: "HEAD",
-          signal: controller2.signal,
-          cache: "no-store",
-          redirect: "follow",
-        });
-      } catch {
-        // Если HEAD не сработал, пробуем GET
-        const controller3 = new AbortController();
-        const timeoutId3 = setTimeout(() => controller3.abort(), PING_TIMEOUT);
-
-        response = await fetch(url, {
-          method: "GET",
-          signal: controller3.signal,
-          cache: "no-store",
-          redirect: "follow",
-        });
-
-        clearTimeout(timeoutId3);
-      }
-
-      clearTimeout(timeoutId2);
-    }
-
-    clearTimeout(timeoutId);
-    const responseTime = Date.now() - startTime;
-
-    // Для favicon даже 404 означает что сервер доступен (просто нет файла)
-    const isPingCheck = pingUrl.includes("/favicon.ico");
-    const isAccessible = isPingCheck
-      ? response.status < 500 // Любые ответы кроме серверных ошибок = доступен
-      : response.ok || response.status === 301 || response.status === 302;
-
+async function requestSite(
+  url: string,
+  method: string,
+): Promise<{ status: number; type?: ResponseType }> {
+  if (nativeProbe) {
+    // The native timeout also runs when background JS timers are suspended.
     return {
-      url,
-      accessible: isAccessible,
-      responseTime,
-    };
-  } catch (error) {
-    const responseTime = Date.now() - startTime;
-
-    return {
-      url,
-      accessible: false,
-      responseTime,
+      status: await nativeProbe.requestStatus(url, method, PING_TIMEOUT),
     };
   }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PING_TIMEOUT);
+  try {
+    const response = await fetch(url, {
+      method,
+      signal: controller.signal,
+      cache: "no-store",
+      // A redirect already proves reachability. Following it can loop on
+      // cookie/JavaScript challenges or fail on another host/protocol.
+      redirect: "manual",
+    });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function pingSite(url: string): Promise<SiteResult> {
+  const startTime = Date.now();
+  const attempts = [
+    { url: getPingUrl(url), method: "GET" },
+    { url, method: "HEAD" },
+    { url, method: "GET" },
+  ];
+  for (const attempt of attempts) {
+    try {
+      const response = await requestSite(attempt.url, attempt.method);
+      return {
+        url,
+        // An HTTP response (including a missing favicon) proves reachability.
+        accessible:
+          // Browsers hide the status of manual redirects but expose this type.
+          response.type === "opaqueredirect" ||
+          (response.status > 0 && response.status < 500),
+        responseTime: Date.now() - startTime,
+      };
+    } catch {
+      // Each attempt owns its timeout and releases it even after a network error.
+    }
+  }
+  return { url, accessible: false, responseTime: Date.now() - startTime };
 }
 
 /**
  * Запускает полный тест всех сайтов
  */
-export async function runFullTest(): Promise<TestResult> {
+export async function runFullTest(
+  customSites: string[] = [],
+): Promise<TestResult> {
   // Проверяем все сайты параллельно
-  const allUrls = [...WHITELIST_RU_SITES, ...RUSSIAN_SITES, ...NEUTRAL_SITES];
+  const allUrls = [
+    ...WHITELIST_RU_SITES,
+    ...RUSSIAN_SITES,
+    ...NEUTRAL_SITES,
+    ...customSites,
+  ];
 
   const results = await Promise.all(allUrls.map(pingSite));
 
@@ -174,6 +278,10 @@ export async function runFullTest(): Promise<TestResult> {
   );
   const neutralResults = results.slice(
     WHITELIST_RU_SITES.length + RUSSIAN_SITES.length,
+    WHITELIST_RU_SITES.length + RUSSIAN_SITES.length + NEUTRAL_SITES.length,
+  );
+  const customResults = results.slice(
+    WHITELIST_RU_SITES.length + RUSSIAN_SITES.length + NEUTRAL_SITES.length,
   );
 
   // Определяем наличие белого списка
@@ -189,6 +297,7 @@ export async function runFullTest(): Promise<TestResult> {
     ...whitelistResults,
     ...russianResults,
     ...neutralResults,
+    ...customResults,
   ].filter((r) => r.accessible).length;
   const noInternet = totalAccessible === 0;
 
@@ -196,6 +305,7 @@ export async function runFullTest(): Promise<TestResult> {
     whitelistResults,
     russianResults,
     neutralResults,
+    customResults,
     hasWhitelist,
     noInternet,
     timestamp: new Date(),

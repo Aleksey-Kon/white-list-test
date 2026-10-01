@@ -1,0 +1,126 @@
+diff --git a/node_modules/expo-task-manager/android/build.gradle b/node_modules/expo-task-manager/android/build.gradle
+--- a/node_modules/expo-task-manager/android/build.gradle
++++ b/node_modules/expo-task-manager/android/build.gradle
+@@ -15,6 +15,7 @@
+ }
+ 
+ dependencies {
++  implementation "com.facebook.react:react-android"
+   implementation project(':unimodules-app-loader')
+   api "androidx.core:core:1.0.0"
+ }
+diff --git a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerModule.kt b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerModule.kt
+--- a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerModule.kt
++++ b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerModule.kt
+@@ -4,6 +4,10 @@
+ import android.os.Handler
+ import android.os.Looper
+ import android.util.Log
++import com.facebook.react.bridge.WritableNativeMap
++import com.facebook.react.bridge.ReactContext
++import com.facebook.react.jstasks.HeadlessJsTaskConfig
++import com.facebook.react.jstasks.HeadlessJsTaskContext
+ import expo.modules.core.errors.ModuleNotFoundException
+ import expo.modules.interfaces.taskManager.TaskManagerInterface
+ import expo.modules.interfaces.taskManager.TaskServiceInterface
+@@ -12,6 +16,31 @@
+ import java.lang.ref.WeakReference
+ 
+ class TaskManagerModule : Module() {
++  // SDK 54 does not tell React Native that TaskManager is doing background work.
++  // Keep timers active from event delivery until native task completion.
++  // Accessed only on the main thread; one token per event supports overlapping tasks.
++  private val timerTasks = mutableMapOf<String, Pair<HeadlessJsTaskContext, Int>>()
++  private val mainHandler = Handler(Looper.getMainLooper())
++
++  private fun startTimerTask(body: Bundle) {
++    val eventId = body.getBundle("executionInfo")?.getString("eventId") ?: return
++    if (timerTasks.containsKey(eventId)) return
++    val context = appContext.reactContext as? ReactContext ?: return
++    val tasks = HeadlessJsTaskContext.getInstance(context)
++    val taskId = tasks.startTask(HeadlessJsTaskConfig(
++      "whitelist-task-manager-timers", WritableNativeMap(), 120_000L, true
++    ))
++    timerTasks[eventId] = tasks to taskId
++    Log.i("ExpoTaskManager", "Started timer task $taskId for $eventId")
++  }
++
++  private fun finishTimerTask(eventId: String?) {
++    if (eventId == null) return
++    val (tasks, taskId) = timerTasks.remove(eventId) ?: return
++    tasks.finishTask(taskId)
++    Log.i("ExpoTaskManager", "Finished timer task $taskId for $eventId")
++  }
++
+   private val _taskService: TaskServiceInterface? by lazy {
+     appContext.legacyModuleRegistry.getSingletonModule("TaskService", TaskServiceInterface::class.java)
+   }
+@@ -35,13 +64,19 @@
+     OnCreate {
+       // Slightly hacky way to be able to emit events using the new event emitter from legacy modules.
+       val weakModule = WeakReference(this@TaskManagerModule)
++      val eventHandler = mainHandler
+       val emitEvent = { name: String, body: Bundle ->
+-        try {
+-          // It may throw, because RN event emitter may not be available
+-          // we can just ignore those cases
+-          weakModule.get()?.sendEvent(name, body)
+-        } catch (error: Throwable) {
+-          Log.e("ExpoTaskManager", "Failed to emit event $name using the module's event emitter: ${error.message}")
++        eventHandler.post {
++          val module = weakModule.get()
++          if (module != null) {
++            try {
++              module.startTimerTask(body)
++              module.sendEvent(name, body)
++            } catch (error: Throwable) {
++              module.finishTimerTask(body.getBundle("executionInfo")?.getString("eventId"))
++              Log.e("ExpoTaskManager", "Failed to emit event $name: ${error.message}")
++            }
++          }
+         }
+         Unit
+       }
+@@ -57,7 +92,17 @@
+     }
+ 
+     AsyncFunction("notifyTaskFinishedAsync") { taskName: String, response: Map<String, Any?> ->
+-      taskService.notifyTaskFinished(taskName, appScopeKey, response)
++      try {
++        taskService.notifyTaskFinished(taskName, appScopeKey, response)
++      } finally {
++        mainHandler.post { finishTimerTask(response["eventId"] as? String) }
++      }
++    }
++
++    OnDestroy {
++      mainHandler.post {
++        timerTasks.keys.toList().forEach { finishTimerTask(it) }
++      }
+     }
+ 
+     AsyncFunction("isTaskRegisteredAsync") { taskName: String ->
+diff --git a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java
+--- a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java
++++ b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java
+@@ -232,6 +232,7 @@
+     // It may be called with null when the host activity is destroyed.
+     if (taskManager == null) {
+       sTaskManagers.remove(appScopeKey);
++      sHeadlessTaskManagers.remove(appScopeKey);
+       return;
+     }
+ 
+@@ -603,9 +604,9 @@
+   private void invalidateAppRecord(String appScopeKey) {
+     HeadlessAppLoader appLoader = getAppLoader();
+     if (appLoader != null) {
+-      if (getAppLoader().invalidateApp(appScopeKey)) {
+-        sHeadlessTaskManagers.remove(appScopeKey);
+-      }
++      // The Activity may have taken over this ReactContext. Keep its manager
++      // until actual module destruction calls setTaskManager(null, ...).
++      appLoader.invalidateApp(appScopeKey);
+     }
+   }
+ 

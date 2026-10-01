@@ -1,22 +1,34 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useLocalization } from "@/hooks/useLocalization";
 import { SiteResult, TestResult } from "@/utils/sitePinger";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 interface ResultsProps {
   result: TestResult | null;
+  customSites: string[];
+  onAddCustomSite: (site: string) => Promise<boolean>;
+  onRemoveCustomSite: (site: string) => Promise<boolean>;
+  onCustomSiteInputFocus: () => void;
 }
 
-type SectionKey = "whitelist" | "russian" | "neutral";
+type SectionKey = "whitelist" | "russian" | "neutral" | "custom";
 
-export function Results({ result }: ResultsProps) {
+export function Results({ result, customSites, onAddCustomSite, onRemoveCustomSite, onCustomSiteInputFocus }: ResultsProps) {
+  const { t, locale } = useLocalization();
+  const isDark = useColorScheme() === "dark";
+  const [customSiteInput, setCustomSiteInput] = useState("");
   const [expandedSections, setExpandedSections] = useState<
     Record<SectionKey, boolean>
   >({
     whitelist: false,
     russian: false,
     neutral: false,
+    custom: false,
   });
 
   const toggleSection = (section: SectionKey) => {
@@ -30,34 +42,44 @@ export function Results({ result }: ResultsProps) {
     return null;
   }
 
+  const customSiteResults = customSites.map((url) => {
+    const testedSite = result.customResults.find((site) => site.url === url);
+    return testedSite ?? { url, accessible: false, pending: true };
+  });
+
   const sections: { key: SectionKey; title: string; sites: SiteResult[] }[] = [
     {
       key: "whitelist",
-      title: "📋 Белый список РФ",
+      title: t("whitelistSection"),
       sites: result.whitelistResults,
     },
     {
       key: "russian",
-      title: "🇷🇺 Другие российские сайты",
+      title: t("russianSection"),
       sites: result.russianResults,
     },
     {
       key: "neutral",
-      title: "🌍 Нейтральные зарубежные сайты",
+      title: t("neutralSection"),
       sites: result.neutralResults,
+    },
+    {
+      key: "custom",
+      title: t("customSection"),
+      sites: customSiteResults,
     },
   ];
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, isDark && darkStyles.container]}>
       {/* Главный результат */}
       <View style={styles.mainResult}>
         <ThemedText type="defaultSemiBold" style={styles.mainResultTitle}>
-          Результат теста
+          {t("testResult")}
         </ThemedText>
         {result.noInternet ? (
-          <View style={[styles.statusBadge, styles.noInternetBadge]}>
-            <ThemedText style={styles.statusText}>❌ Нет интернета</ThemedText>
+          <View style={[styles.statusBadge, styles.noInternetBadge, isDark && darkStyles.noInternetBadge]}>
+            <ThemedText style={styles.statusText}>{t("noInternet")}</ThemedText>
           </View>
         ) : (
           <View
@@ -66,61 +88,66 @@ export function Results({ result }: ResultsProps) {
               result.hasWhitelist
                 ? styles.whitelistDetected
                 : styles.noWhitelist,
+              isDark && (result.hasWhitelist ? darkStyles.whitelistDetected : darkStyles.noWhitelist),
             ]}
           >
             <ThemedText style={styles.statusText}>
               {result.hasWhitelist
-                ? "⚠️ Обнаружены белые списки!"
-                : "✅ Белые списки не обнаружены"}
+                ? t("whitelistDetected")
+                : t("noWhitelist")}
             </ThemedText>
           </View>
         )}
-        <ThemedText style={styles.timestamp}>
-          {result.timestamp.toLocaleString("ru-RU")}
+        <ThemedText style={[styles.timestamp, isDark && darkStyles.secondaryText]}>
+          {result.timestamp.toLocaleString(locale)}
         </ThemedText>
       </View>
 
       {/* Статистика */}
       <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.whitelistResults.filter((r) => r.accessible).length}/
             {result.whitelistResults.length}
           </ThemedText>
-          <ThemedText style={styles.statLabel}>Белый список РФ</ThemedText>
+          <ThemedText style={styles.statLabel}>{t("whitelistSites")}</ThemedText>
         </View>
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.russianResults.filter((r) => r.accessible).length}/
             {result.russianResults.length}
           </ThemedText>
-          <ThemedText style={styles.statLabel}>Российские сайты</ThemedText>
+          <ThemedText style={styles.statLabel}>{t("russianSites")}</ThemedText>
         </View>
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, isDark && darkStyles.statBox]}>
           <ThemedText style={styles.statNumber}>
             {result.neutralResults.filter((r) => r.accessible).length}/
             {result.neutralResults.length}
           </ThemedText>
-          <ThemedText style={styles.statLabel}>Нейтральные сайты</ThemedText>
+          <ThemedText style={styles.statLabel}>{t("neutralSites")}</ThemedText>
         </View>
       </View>
 
       {/* Детальные результаты - раскрывающиеся списки */}
-      <ScrollView style={styles.detailsContainer}>
+      <View>
         {sections.map(({ key, title, sites }) => (
-          <View key={key} style={styles.section}>
+          <View key={key} style={[styles.section, isDark && darkStyles.section]}>
             <TouchableOpacity
               style={styles.sectionHeader}
               onPress={() => toggleSection(key)}
               activeOpacity={0.7}
             >
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              <ThemedText
+                type="defaultSemiBold"
+                style={styles.sectionTitle}
+              >
                 {title}
               </ThemedText>
               <View style={styles.arrowContainer}>
                 <View
                   style={[
                     styles.arrow,
+                    isDark && darkStyles.arrow,
                     expandedSections[key] && styles.arrowExpanded,
                   ]}
                 />
@@ -130,30 +157,82 @@ export function Results({ result }: ResultsProps) {
             {expandedSections[key] && (
               <View style={styles.sectionContent}>
                 {sites.map((site, index) => (
-                  <SiteResultRow key={index} site={site} />
+                  <SiteResultRow
+                    key={index}
+                    site={site}
+                    canRemove={key === "custom"}
+                    onRemove={onRemoveCustomSite}
+                  />
                 ))}
               </View>
             )}
           </View>
         ))}
-      </ScrollView>
+        <View style={styles.addSiteContainer}>
+          <TextInput
+            value={customSiteInput}
+            onChangeText={setCustomSiteInput}
+            onFocus={onCustomSiteInputFocus}
+            placeholder="example.com"
+            placeholderTextColor={isDark ? Colors.dark.icon : undefined}
+            selectionColor={isDark ? Colors.dark.link : undefined}
+            keyboardAppearance={isDark ? "dark" : undefined}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            style={[styles.addSiteInput, isDark && darkStyles.addSiteInput]}
+            accessibilityLabel={t("customSiteAddress")}
+          />
+          <TouchableOpacity
+            style={[styles.addSiteButton, isDark && darkStyles.addSiteButton]}
+            onPress={async () => {
+              if (await onAddCustomSite(customSiteInput)) setCustomSiteInput("");
+            }}
+            activeOpacity={0.8}
+          >
+            <ThemedText style={styles.addSiteButtonText}>{t("addSite")}</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ThemedView>
   );
 }
 
-function SiteResultRow({ site }: { site: SiteResult }) {
+function SiteResultRow({
+  site,
+  canRemove,
+  onRemove,
+}: {
+  site: SiteResult & { pending?: boolean };
+  canRemove: boolean;
+  onRemove: (site: string) => Promise<boolean>;
+}) {
+  const { t } = useLocalization();
+  const isDark = useColorScheme() === "dark";
   return (
-    <View style={styles.siteRow}>
+    <View style={[styles.siteRow, isDark && darkStyles.siteRow]}>
       <ThemedText style={styles.siteIcon}>
-        {site.accessible ? "✅" : "❌"}
+        {site.pending ? "⏳" : site.accessible ? "✅" : "❌"}
       </ThemedText>
       <ThemedText
-        style={[styles.siteUrl, !site.accessible && styles.siteUrlInaccessible]}
+        style={[styles.siteUrl, !site.accessible && !site.pending && styles.siteUrlInaccessible,
+          isDark && !site.accessible && !site.pending && darkStyles.secondaryText]}
       >
-        {site.url.replace("https://", "")}
+        {site.url.replace(/^https?:\/\//i, "")}
       </ThemedText>
-      <ThemedText style={styles.siteTime}>
-        {site.accessible && site.responseTime ? `${site.responseTime}ms` : "-"}
+      {canRemove && (
+        <TouchableOpacity
+          style={styles.removeSiteButton}
+          onPress={() => void onRemove(site.url)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t("removeSite", { site: site.url })}
+        >
+          <Ionicons name="trash-outline" size={20} color="#D64545" />
+        </TouchableOpacity>
+      )}
+      <ThemedText style={[styles.siteTime, isDark && darkStyles.secondaryText]}>
+        {site.pending ? "" : site.accessible && site.responseTime ? t("milliseconds", { count: site.responseTime }) : "-"}
       </ThemedText>
     </View>
   );
@@ -161,35 +240,45 @@ function SiteResultRow({ site }: { site: SiteResult }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 16,
+    padding: 18,
+    marginHorizontal: 24,
+    marginBottom: 16,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5EAF2",
+    shadowColor: "#102A43",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   mainResult: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 18,
   },
   mainResultTitle: {
     fontSize: 18,
     marginBottom: 12,
   },
   statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
+    borderRadius: 14,
     marginBottom: 8,
   },
   whitelistDetected: {
-    backgroundColor: "rgba(244, 67, 54, 0.2)",
+    backgroundColor: "#FDE8E7",
   },
   noWhitelist: {
-    backgroundColor: "rgba(76, 175, 80, 0.2)",
+    backgroundColor: "#E3F4EC",
   },
   noInternetBadge: {
-    backgroundColor: "rgba(158, 158, 158, 0.3)",
+    backgroundColor: "#E9EDF3",
   },
   statusText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   timestamp: {
     fontSize: 12,
@@ -205,8 +294,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
+    borderRadius: 14,
+    backgroundColor: "#F1F4F8",
   },
   statNumber: {
     fontSize: 24,
@@ -214,26 +303,28 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     textAlign: "center",
-  },
-  detailsContainer: {
-    flex: 1,
   },
   section: {
     marginBottom: 8,
-    borderRadius: 8,
+    borderRadius: 14,
     overflow: "hidden",
-    backgroundColor: "rgba(128, 128, 128, 0.05)",
+    backgroundColor: "#F7F9FC",
+    borderWidth: 1,
+    borderColor: "#E8EDF4",
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 12,
+    padding: 14,
   },
   sectionTitle: {
     fontSize: 16,
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 10,
   },
   sectionArrow: {
     fontSize: 12,
@@ -242,6 +333,7 @@ const styles = StyleSheet.create({
   arrowContainer: {
     width: 24,
     height: 24,
+    flexShrink: 0,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -250,7 +342,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRightWidth: 2,
     borderBottomWidth: 2,
-    borderColor: "rgba(128, 128, 128, 0.6)",
+    borderColor: "#718096",
     transform: [{ rotate: "45deg" }],
   },
   arrowExpanded: {
@@ -260,13 +352,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingBottom: 8,
   },
+  addSiteContainer: {
+    marginTop: 8,
+    gap: 8,
+  },
+  addSiteInput: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#D5DDE8",
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    color: "#102A43",
+    fontFamily: Fonts.sans,
+    fontSize: 15,
+  },
+  addSiteButton: {
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    backgroundColor: "#2196F3",
+  },
+  addSiteButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
   siteRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(128, 128, 128, 0.2)",
+    borderBottomColor: "#E5EAF2",
   },
   siteIcon: {
     fontSize: 16,
@@ -287,4 +405,29 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: "right",
   },
+  removeSiteButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 4,
+  },
+});
+
+const darkStyles = StyleSheet.create({
+  container: { backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border },
+  whitelistDetected: { backgroundColor: Colors.dark.errorSurface },
+  noWhitelist: { backgroundColor: Colors.dark.successSurface },
+  noInternetBadge: { backgroundColor: Colors.dark.neutralSurface },
+  statBox: { backgroundColor: Colors.dark.surfaceRaised },
+  section: { backgroundColor: Colors.dark.surfaceInset, borderColor: Colors.dark.border },
+  arrow: { borderColor: Colors.dark.icon },
+  addSiteInput: {
+    backgroundColor: Colors.dark.surfaceInset,
+    borderColor: Colors.dark.inputBorder,
+    color: Colors.dark.text,
+  },
+  addSiteButton: { backgroundColor: Colors.dark.secondaryButton },
+  siteRow: { borderBottomColor: Colors.dark.border },
+  secondaryText: { opacity: 0.8 },
 });
