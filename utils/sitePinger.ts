@@ -54,19 +54,48 @@ export const RUSSIAN_SITES = [
   "https://habr.com",
   "https://tproger.ru",
   "https://citilink.ru",
-  "https://dns-shop.ru",
-  "https://mvideo.ru",
   "https://lamoda.ru",
   "https://drom.ru",
   "https://auto.ru",
-  "https://sberbank.ru",
-  "https://tbank.ru",
-  "https://vtb.ru",
-  "https://rbc.ru",
   "https://stepik.org",
+
+  // IT и технологии
+  "https://vc.ru",
+  "https://dtf.ru",
+  "https://www.opennet.ru",
+  "https://www.linux.org.ru",
+  "https://proglib.io",
+  "https://3dnews.ru",
+  "https://www.ixbt.com",
+  "https://overclockers.ru",
+  "https://www.cyberforum.ru",
+
+  // Магазины техники и товаров
+  "https://www.nix.ru",
+  "https://www.regard.ru",
+  "https://www.onlinetrade.ru",
+  "https://www.sportmaster.ru",
+  "https://petrovich.ru",
+
+  // Авто
+  "https://www.drive2.ru",
+
+  // Спорт
+  "https://www.sports.ru",
+  "https://www.championat.com",
+
+  // Образование
   "https://skillbox.ru",
-  "https://kommersant.ru",
-  "https://vedomosti.ru",
+  "https://netology.ru",
+  "https://geekbrains.ru",
+  "https://sky.pro",
+
+  // Книги, сообщества, отзывы, объявления
+  "https://www.litres.ru",
+  "https://pikabu.ru",
+  "https://irecommend.ru",
+  "https://otzovik.com",
+  "https://www.farpost.ru",
 ];
 
 export const NEUTRAL_SITES = [
@@ -82,8 +111,60 @@ export const NEUTRAL_SITES = [
   "https://nodejs.org",
   "https://google.com",
   "https://amazon.com",
-  "https://vercel.com",
   "https://2ip.io",
+
+  // Дистрибутивы Linux и ОС
+  "https://fedoraproject.org",
+  "https://linuxmint.com",
+  "https://opensuse.org",
+  "https://alpinelinux.org",
+  "https://freebsd.org",
+  "https://gentoo.org",
+  "https://nixos.org",
+
+  // Языки и рантаймы
+  "https://rust-lang.org",
+  "https://go.dev",
+  "https://php.net",
+  "https://ruby-lang.org",
+  "https://deno.com",
+  "https://www.typescriptlang.org",
+  "https://www.postgresql.org",
+
+  // Фреймворки и библиотеки
+  "https://react.dev",
+  "https://svelte.dev",
+  "https://angular.dev",
+  "https://nextjs.org",
+  "https://vite.dev",
+  "https://expressjs.com",
+  "https://www.djangoproject.com",
+  "https://flask.palletsprojects.com",
+  "https://tailwindcss.com",
+
+  // Инструменты и инфраструктура
+  "https://git-scm.com",
+  "https://www.docker.com",
+  "https://kubernetes.io",
+  "https://www.gnu.org",
+  "https://www.apache.org",
+  "https://www.mozilla.org",
+  "https://www.videolan.org",
+  "https://www.blender.org",
+  "https://www.gimp.org",
+  "https://www.libreoffice.org",
+  "https://www.openstreetmap.org",
+  "https://www.wikipedia.org",
+  "https://archive.org",
+
+  // Пакетные менеджеры и реестры
+  "https://www.npmjs.com",
+  "https://pypi.org",
+  "https://crates.io",
+  "https://pkg.go.dev",
+  "https://hub.docker.com",
+  "https://sourceforge.net",
+  "https://codeberg.org",
 ];
 
 export interface SiteResult {
