@@ -1,9 +1,7 @@
 package expo.modules.apptheme
 
 import android.app.UiModeManager
-import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import expo.modules.kotlin.functions.Queues
@@ -40,42 +38,12 @@ internal object AppThemeSettings {
   }
 }
 
-internal object AppNameSettings {
-  fun setLanguage(context: Context, language: String) {
-    val enabledAlias = when (language) {
-      "en" -> "EnglishLauncherAlias"
-      "ru" -> "RussianLauncherAlias"
-      else -> throw IllegalArgumentException("Unsupported app language: $language")
-    }
-    val packageManager = context.packageManager
-    packageManager.setComponentEnabledSetting(
-      ComponentName(context.packageName, "${context.packageName}.$enabledAlias"),
-      PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-      PackageManager.DONT_KILL_APP,
-    )
-    listOf("SystemLauncherAlias", "EnglishLauncherAlias", "RussianLauncherAlias")
-      .filter { it != enabledAlias }
-      .forEach { alias ->
-        packageManager.setComponentEnabledSetting(
-          ComponentName(context.packageName, "${context.packageName}.$alias"),
-          PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-          PackageManager.DONT_KILL_APP,
-        )
-      }
-  }
-}
-
 class AppThemeModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("AppTheme")
     AsyncFunction("setTheme") { theme: String ->
       val context = requireNotNull(appContext.reactContext) { "React context unavailable" }
       AppThemeSettings.save(context, theme)
-    }.runOnQueue(Queues.MAIN)
-
-    AsyncFunction("setAppLanguage") { language: String ->
-      val context = requireNotNull(appContext.reactContext) { "React context unavailable" }
-      AppNameSettings.setLanguage(context, language)
     }.runOnQueue(Queues.MAIN)
   }
 }

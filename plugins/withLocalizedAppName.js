@@ -10,11 +10,7 @@ const path = require("node:path");
 module.exports = (config) => {
   config = withStringsXml(config, (config) => {
     config.modResults = AndroidConfig.Strings.setStringItem(
-      [
-        { $: { name: "app_name" }, _: "Whitelist test" },
-        { $: { name: "app_name_en" }, _: "Whitelist test" },
-        { $: { name: "app_name_ru" }, _: "Тест белых списков" },
-      ],
+      [{ $: { name: "app_name" }, _: "Whitelist test" }],
       config.modResults,
     );
     return config;
@@ -24,24 +20,11 @@ module.exports = (config) => {
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(
       config.modResults,
     );
-    const aliases = [
-      {
-        name: `${config.android.package}.SystemLauncherAlias`,
-        label: "@string/app_name",
-        enabled: "true",
-      },
-      {
-        name: `${config.android.package}.EnglishLauncherAlias`,
-        label: "@string/app_name_en",
-        enabled: "false",
-      },
-      {
-        name: `${config.android.package}.RussianLauncherAlias`,
-        label: "@string/app_name_ru",
-        enabled: "false",
-      },
-    ];
-    const aliasNames = new Set(aliases.map(({ name }) => name));
+    const aliasNames = new Set([
+      `${config.android.package}.SystemLauncherAlias`,
+      `${config.android.package}.EnglishLauncherAlias`,
+      `${config.android.package}.RussianLauncherAlias`,
+    ]);
     const existingAliases = (application["activity-alias"] ?? []).filter(
       (alias) => aliasNames.has(alias.$["android:name"]),
     );
@@ -57,34 +40,16 @@ module.exports = (config) => {
       throw new Error("Could not find the Android launcher activity");
     }
 
-    const mainActivityName = mainActivity.$["android:name"];
     mainActivity["intent-filter"] = (
       mainActivity["intent-filter"] ?? []
     ).filter((intentFilter) => !isLauncherIntentFilter(intentFilter));
-
+    mainActivity["intent-filter"].push({
+      action: [{ $: { "android:name": "android.intent.action.MAIN" } }],
+      category: [{ $: { "android:name": "android.intent.category.LAUNCHER" } }],
+    });
     application["activity-alias"] = (
       application["activity-alias"] ?? []
     ).filter((alias) => !aliasNames.has(alias.$["android:name"]));
-    application["activity-alias"].push(
-      ...aliases.map(({ name, label, enabled }) => ({
-        $: {
-          "android:name": name,
-          "android:targetActivity": mainActivityName,
-          "android:label": label,
-          "android:icon": "@mipmap/ic_launcher",
-          "android:enabled": enabled,
-          "android:exported": "true",
-        },
-        "intent-filter": [
-          {
-            action: [{ $: { "android:name": "android.intent.action.MAIN" } }],
-            category: [
-              { $: { "android:name": "android.intent.category.LAUNCHER" } },
-            ],
-          },
-        ],
-      })),
-    );
     return config;
   });
 

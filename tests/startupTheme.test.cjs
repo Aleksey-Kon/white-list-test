@@ -27,28 +27,6 @@ test("Android sends the selected theme to the persistent native bridge", async (
   assert.deepEqual(selected, ["dark", "light"]);
 });
 
-test("native app name follows the selected language", async () => {
-  const selected = [];
-  const { synchronizeNativeAppName } = loadTypescript(
-    "utils/nativeAppName.ts",
-    {
-      expo: {
-        requireOptionalNativeModule: (name) => {
-          assert.equal(name, "AppTheme");
-          return {
-            setAppLanguage: async (language) => {
-              selected.push(language);
-            },
-          };
-        },
-      },
-    },
-  );
-  await synchronizeNativeAppName("ru");
-  await synchronizeNativeAppName("en");
-  assert.deepEqual(selected, ["ru", "en"]);
-});
-
 for (const os of ["android", "ios", "web"]) {
   test(`${os} handles unavailable native theme bridge`, async () => {
     const selected = [];
@@ -72,7 +50,6 @@ for (const os of ["android", "ios", "web"]) {
 for (const saved of ["dark", "light", null]) {
   test(`startup waits for the saved ${saved} theme and root background before showing content`, async () => {
     const calls = [];
-    const appNameLanguages = [];
     let finishTheme;
     let finishBackground;
     const { prepareApp } = loadTypescript("utils/prepareApp.ts", {
@@ -93,12 +70,6 @@ for (const saved of ["dark", "light", null]) {
       },
       "./localization": {
         initializeLanguage: async () => {},
-        getLanguage: () => "ru",
-      },
-      "./nativeAppName": {
-        synchronizeNativeAppName: async (language) => {
-          appNameLanguages.push(language);
-        },
       },
       "./themePreference": {
         initializeTheme: () =>
@@ -116,7 +87,6 @@ for (const saved of ["dark", "light", null]) {
     assert.deepEqual(calls, []);
     finishTheme();
     await new Promise((resolve) => setImmediate(resolve));
-    assert.deepEqual(appNameLanguages, ["ru"]);
     assert.deepEqual(calls, [saved === "dark" ? "#10151C" : "#F5F7FB"]);
     assert.equal(ready, false);
     finishBackground();
