@@ -154,7 +154,6 @@ export const NEUTRAL_SITES = [
   "https://www.gimp.org",
   "https://www.libreoffice.org",
   "https://www.openstreetmap.org",
-  "https://www.wikipedia.org",
   "https://archive.org",
 
   // Пакетные менеджеры и реестры
