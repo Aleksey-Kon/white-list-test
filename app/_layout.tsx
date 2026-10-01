@@ -1,3 +1,7 @@
+import { Lato_400Regular } from "@expo-google-fonts/lato/400Regular";
+import { Lato_700Bold } from "@expo-google-fonts/lato/700Bold";
+import { Lato_900Black } from "@expo-google-fonts/lato/900Black";
+import { useFonts } from "@expo-google-fonts/lato/useFonts";
 import {
   DarkTheme,
   DefaultTheme,
@@ -22,6 +26,11 @@ import { synchronizeNativeAppName } from "../utils/nativeAppName";
 void SplashScreen.preventAutoHideAsync().catch((error) => console.warn("Could not hold splash screen:", error));
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Lato_400Regular,
+    Lato_700Bold,
+    Lato_900Black,
+  });
   const colorScheme = useColorScheme();
   const { language, t } = useLocalization();
   const [ready, setReady] = useState(false);
@@ -55,7 +64,7 @@ export default function RootLayout() {
     }
   }, [language, ready]);
 
-  if (!ready) return null;
+  if (!ready || (!fontsLoaded && !fontError)) return null;
 
   return (
     <View

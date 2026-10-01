@@ -20,6 +20,7 @@
     "install": "npx expo prebuild --platform android && cd android && gradlew assembleRelease && adb install -r app/build/outputs/apk/release/app-release.apk && adb shell monkey -p com.zvezda4443.testwhitelist 1"
   },
   "dependencies": {
+    "@expo-google-fonts/lato": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.0",

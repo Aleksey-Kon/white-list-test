@@ -1,8 +1,8 @@
-import { useLocalization } from "@/hooks/useLocalization";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Colors } from "@/constants/theme";
+import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useLocalization } from "@/hooks/useLocalization";
 import { SiteResult, TestResult } from "@/utils/sitePinger";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -364,6 +364,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#FFFFFF",
     color: "#102A43",
+    fontFamily: Fonts.sans,
     fontSize: 15,
   },
   addSiteButton: {

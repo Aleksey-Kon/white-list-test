@@ -1,8 +1,8 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 
-import { useThemeColor } from '@/hooks/use-theme-color';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -19,18 +19,31 @@ export function ThemedText({
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
   const isDark = useColorScheme() === 'dark';
+  const typeStyle =
+    type === 'default' ? styles.default :
+    type === 'title' ? styles.title :
+    type === 'defaultSemiBold' ? styles.defaultSemiBold :
+    type === 'subtitle' ? styles.subtitle :
+    type === 'link' ? styles.link : undefined;
+  const fontWeight =
+    StyleSheet.flatten<TextStyle>(style)?.fontWeight ??
+    StyleSheet.flatten<TextStyle>(typeStyle)?.fontWeight;
+  const fontFamily =
+    fontWeight === '800' || fontWeight === '900' ? Fonts.sansExtraBold :
+    fontWeight === '700' || fontWeight === 'bold' ? Fonts.sansBold :
+    fontWeight === '600' ? Fonts.sansSemiBold : Fonts.sans;
+  const resolvedFontWeight =
+    fontWeight === '800' || fontWeight === '900' ? '900' :
+    fontWeight === '700' || fontWeight === 'bold' || fontWeight === '600' ? '700' : '400';
 
   return (
     <Text
       style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        { color, fontFamily },
+        typeStyle,
         type === 'link' && isDark ? { color: darkColor ?? Colors.dark.link } : undefined,
         style,
+        { fontFamily, fontWeight: resolvedFontWeight },
       ]}
       {...rest}
     />
