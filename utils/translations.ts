@@ -2,6 +2,7 @@ export const translations = {
   ru: {
     switchToLightTheme: "Включить светлую тему",
     switchToDarkTheme: "Включить тёмную тему",
+    openGithubRepository: "Открыть проект на GitHub",
     appTitle: "Тест белых списков",
     appDescription: "Проверка наличия белых списков на мобильном интернете",
     error: "Ошибка",
@@ -111,6 +112,7 @@ export const translations = {
   en: {
     switchToLightTheme: "Switch to light theme",
     switchToDarkTheme: "Switch to dark theme",
+    openGithubRepository: "Open project on GitHub",
     appTitle: "Whitelist test",
     appDescription: "Check for whitelist restrictions on mobile data",
     error: "Error",

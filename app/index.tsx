@@ -17,6 +17,7 @@ import { useBackgroundMonitor } from "@/hooks/useBackgroundMonitor";
 import { useNetworkInfo } from "@/hooks/useNetworkInfo";
 import { runFullTest, TestResult } from "@/utils/sitePinger";
 import { translate, translateDiagnostic } from "@/utils/translations";
+import { GitHubButton } from "../components/GitHubButton";
 import { loadCustomSites, normalizeCustomSite, removeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
 
 const SHOW_BACKGROUND_TEST = false;
@@ -221,8 +222,11 @@ export default function HomeScreen() {
           onContentSizeChange={keepCustomSiteInputVisible}
         >
         <View style={styles.headerControls}>
-          <ThemeSwitcher />
-          <LanguageSwitcher />
+          <GitHubButton />
+          <View style={styles.headerControlGroup}>
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+          </View>
         </View>
         {/* Заголовок */}
         <ThemedText type="title" style={styles.header}>
@@ -332,11 +336,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   headerControls: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 10,
     marginHorizontal: 24,
     marginTop: 8,
+  },
+  headerControlGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   container: {
     flex: 1,
