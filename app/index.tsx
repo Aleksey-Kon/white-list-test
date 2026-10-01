@@ -19,8 +19,8 @@ import { runFullTest, TestResult } from "@/utils/sitePinger";
 import { translate, translateDiagnostic } from "@/utils/translations";
 import { loadCustomSites, normalizeCustomSite, removeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
 
-const SHOW_BACKGROUND_TEST = true;
-const SHOW_BACKGROUND = true;
+const SHOW_BACKGROUND_TEST = false;
+const SHOW_BACKGROUND = false;
 
 export default function HomeScreen() {
   const { t, locale, language } = useLocalization();
