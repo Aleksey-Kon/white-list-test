@@ -13,6 +13,7 @@ import {
   shouldNotify,
 } from "../utils/backgroundMonitorPolicy";
 import { pingSite } from "../utils/sitePinger";
+import { configureNativeMonitor, isNativeMonitorAvailable, isNativeMonitorRunning } from "../utils/nativeBackgroundMonitor";
 
 export const BACKGROUND_MONITOR_TASK = "background-whitelist-monitor";
 const CHANNEL_ID = "whitelist-monitor";
@@ -119,6 +120,7 @@ async function backgroundIssue(): Promise<string | null> {
   if (Platform.OS === "web" || !(await TaskManager.isAvailableAsync())) {
     return "backgroundUnsupported";
   }
+  if (!isNativeMonitorAvailable()) return "backgroundServiceUnavailable";
   if (
     (await BackgroundTask.getStatusAsync()) !==
     BackgroundTask.BackgroundTaskStatus.Available
@@ -148,6 +150,18 @@ async function saveSettings(settings: MonitorSettings) {
     [TEST_KEY, String(settings.isTestEnabled)],
     [INTERVAL_KEY, String(settings.intervalMinutes)],
   ]);
+}
+
+async function syncForegroundService(settings: MonitorSettings) {
+  if (Platform.OS !== "android") return;
+  await initializeLanguage();
+  await configureNativeMonitor(
+    settings.isEnabled || settings.isTestEnabled,
+    settings.intervalMinutes,
+    translate(getLanguage(), "monitorServiceTitle"),
+    translate(getLanguage(), "monitorServiceBody", { minutes: settings.intervalMinutes }),
+    translate(getLanguage(), "monitorServiceChannel"),
+  );
 }
 
 async function syncRegistration(settings: MonitorSettings) {
@@ -218,6 +232,7 @@ export function initializeMonitor(): Promise<MonitorSnapshot> {
       if (!issue) {
         await ensureChannel();
         await syncRegistration(settings);
+        await syncForegroundService(settings);
         if (!settings.isTestEnabled)
           await Notifications.cancelScheduledNotificationAsync(
             TEST_NOTIFICATION_ID,
@@ -251,7 +266,12 @@ export function updateMonitorSettings(
     try {
       // Persist before registering so a worker always sees the current opt-in.
       await saveSettings(next);
-      if (!issue) await syncRegistration(next);
+      if (!issue) {
+        await syncRegistration(next);
+        await syncForegroundService(next);
+      } else if (!next.isEnabled && !next.isTestEnabled) {
+        await syncForegroundService(next);
+      }
       if (next.isTestEnabled && !previous.isTestEnabled)
         await scheduleDeliveryTest();
       if (!next.isTestEnabled && Platform.OS !== "web") {
@@ -261,7 +281,10 @@ export function updateMonitorSettings(
       }
     } catch (error) {
       await saveSettings(previous);
-      if (!issue) await syncRegistration(previous);
+      if (!issue) {
+        await syncRegistration(previous);
+        await syncForegroundService(previous);
+      }
       throw error;
     }
     return getMonitorSnapshot();
@@ -277,6 +300,10 @@ export async function getMonitorSnapshot(): Promise<MonitorSnapshot> {
     isRegistered =
       !issue &&
       (await TaskManager.isTaskRegisteredAsync(BACKGROUND_MONITOR_TASK));
+    if (isRegistered && !(await isNativeMonitorRunning())) {
+      isRegistered = false;
+      issue = "backgroundServiceStopped";
+    }
     if (!issue) issue = await notificationIssue(false);
   } catch (error) {
     issue = monitorError(error);
@@ -319,25 +346,32 @@ function diagnostic(messageKey: TranslationKey, messageParams?: TranslationParam
   return { message: translate("ru", messageKey, messageParams), messageKey, messageParams };
 }
 
-async function checkSites(): Promise<ReturnType<typeof diagnostic> & { hasWhitelist?: boolean }> {
-  console.info("[BackgroundMonitor] Reading network state");
+async function networkSkipReason(): Promise<TranslationKey | null> {
   const network = await Network.getNetworkStateAsync();
   console.info("[BackgroundMonitor] Network state", JSON.stringify(network));
   const { isVpnActive } = await import("react-native-vpn-detector");
-  if (isVpnActive()) return { ...diagnostic("vpnSkipped") };
+  if (isVpnActive()) return "vpnSkipped";
   if (
     network.type !== Network.NetworkStateType.CELLULAR ||
     network.isConnected === false
   ) {
-    return {
-      ...diagnostic("cellularSkipped"),
-    };
+    return "cellularSkipped";
   }
+  return null;
+}
+
+async function checkSites(): Promise<ReturnType<typeof diagnostic> & { hasWhitelist?: boolean }> {
+  const skipReason = await networkSkipReason();
+  if (skipReason) return diagnostic(skipReason);
   // Do not trust isInternetReachable: its probe can itself be blocked by a whitelist.
   const results = await Promise.all(
     [...NEUTRAL_SITES, ...CONTROL_SITES].map(pingSite),
   );
   console.info("[BackgroundMonitor] Site probes completed");
+  // A VPN or Wi-Fi connection can appear while probes are in flight. Never
+  // compare that mixed-network result with the last valid cellular check.
+  const changedNetwork = await networkSkipReason();
+  if (changedNetwork) return diagnostic(changedNetwork);
   const accessible = results
     .slice(0, NEUTRAL_SITES.length)
     .filter((r) => r.accessible).length;
@@ -357,7 +391,21 @@ async function checkSites(): Promise<ReturnType<typeof diagnostic> & { hasWhitel
   };
 }
 
-export async function runBackgroundMonitor(taskError?: { message: string }) {
+let activeRun: Promise<BackgroundTask.BackgroundTaskResult> | null = null;
+
+export function runBackgroundMonitor(taskError?: { message: string }) {
+  // A native timeout stops waiting, but cannot cancel a queued/running JS event.
+  // Redeliveries share that execution until it actually finishes, including its
+  // notification and baseline writes. A cold process starts with no active run.
+  if (!activeRun) {
+    activeRun = performBackgroundMonitor(taskError).finally(() => {
+      activeRun = null;
+    });
+  }
+  return activeRun;
+}
+
+async function performBackgroundMonitor(taskError?: { message: string }) {
   const run: MonitorRun = {
     startedAt: new Date().toISOString(),
     status: "running",
@@ -408,7 +456,7 @@ export async function runBackgroundMonitor(taskError?: { message: string }) {
         });
         run.notification = "scheduled";
         // Advance only after acceptance, so permission/scheduling failures retry next run.
-        if (result.hasWhitelist !== undefined)
+        if (current.isEnabled && result.hasWhitelist !== undefined)
           await AsyncStorage.setItem(STATE_KEY, String(result.hasWhitelist));
       }
     }

@@ -21,6 +21,8 @@ function setup(options = {}) {
     backgroundStatus: 2,
     network: { type: 'CELLULAR', isConnected: true },
     vpn: false,
+    nativeAvailable: true,
+    serviceRunning: true,
     ping: async (url) => ({ url, accessible: true }),
     ...options,
   };
@@ -79,6 +81,15 @@ function setup(options = {}) {
     },
     'react-native': { Platform: { OS: state.os ?? 'android' } },
     '../utils/sitePinger': { pingSite: (url) => state.ping(url) },
+    '../utils/nativeBackgroundMonitor': {
+      isNativeMonitorAvailable: () => state.nativeAvailable,
+      isNativeMonitorRunning: async () => state.serviceRunning,
+      configureNativeMonitor: async (enabled) => {
+        calls.push(enabled ? 'start-service' : 'stop-service');
+        if (state.failService) { state.failService = false; throw new Error('service start failed'); }
+        state.serviceRunning = enabled;
+      },
+    },
   });
   return { service, storage, state, calls, scheduled,
     worker: (error) => definedTask({ error }),
@@ -124,6 +135,31 @@ test('test mode reports every real worker run even if unchanged', async () => {
   assert.equal(h.scheduled.size, 2);
 });
 
+test('native redelivery shares a pending check and sends only one notification', async () => {
+  const h = setup({ storage: { [ENABLED]: 'true', [TEST]: 'true' } });
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  let probes = 0;
+  h.state.ping = async () => { probes++; await gate; return { accessible: true }; };
+  const original = h.worker();
+  await new Promise((resolve) => setImmediate(resolve));
+  const redelivery = h.worker();
+  assert.equal(original, redelivery);
+  assert.equal(probes, 5);
+  release();
+  assert.deepEqual(await Promise.all([original, redelivery]), [1, 1]);
+  assert.equal(h.scheduled.size, 1);
+  await h.worker();
+  assert.equal(h.scheduled.size, 2, 'completion releases the guard for the next check');
+});
+
+test('failed checks release the redelivery guard for a later retry', async () => {
+  const h = setup({ storage: { [ENABLED]: 'true' } });
+  assert.equal(await h.worker({ message: 'native failure' }), 2);
+  assert.equal(await h.worker(), 1);
+  assert.equal(h.scheduled.size, 1);
+});
+
 for (const [reason, options] of [
   ['Wi-Fi', { network: { type: 'WIFI' } }],
   ['VPN', { vpn: true }],
@@ -144,6 +180,55 @@ test('ordinary monitoring skips Wi-Fi without notification', async () => {
   await h.worker();
   assert.equal(h.run().status, 'skipped');
   assert.equal(h.scheduled.size, 0);
+});
+
+for (const [reason, options] of [
+  ['Wi-Fi', { network: { type: 'WIFI' } }],
+  ['VPN', { vpn: true }],
+  ['disconnected cellular', { network: { type: 'CELLULAR', isConnected: false } }],
+  ['offline probes', { ping: async () => ({ accessible: false }) }],
+]) {
+  test(`ordinary monitoring preserves the baseline during ${reason} and resumes on cellular`, async () => {
+    const h = setup({ ...options, storage: { [ENABLED]: 'true', [STATE]: 'true' } });
+    await h.worker();
+    assert.equal(h.run().status, 'skipped');
+    assert.equal(h.storage.get(STATE), 'true');
+    assert.equal(h.scheduled.size, 0);
+    h.state.network = { type: 'CELLULAR', isConnected: true, isInternetReachable: false };
+    h.state.vpn = false;
+    h.state.ping = async () => ({ accessible: true });
+    await h.worker();
+    assert.equal(h.scheduled.size, 1);
+    assert.equal(h.storage.get(STATE), 'false');
+  });
+}
+
+for (const change of ['wifi', 'vpn', 'offline']) {
+  test(`a switch to ${change} during probing discards the result without changing the baseline`, async () => {
+    const h = setup({ storage: { [ENABLED]: 'true', [STATE]: 'true' } });
+    h.state.ping = async () => {
+      if (change === 'wifi') h.state.network = { type: 'WIFI' };
+      if (change === 'vpn') h.state.vpn = true;
+      if (change === 'offline') h.state.network = { type: 'CELLULAR', isConnected: false };
+      return { accessible: true };
+    };
+    await h.worker();
+    assert.equal(h.run().status, 'skipped');
+    assert.equal(h.storage.get(STATE), 'true');
+    assert.equal(h.scheduled.size, 0);
+  });
+}
+
+test('test-only runs do not consume a state transition intended for ordinary monitoring', async () => {
+  const h = setup({ storage: { [TEST]: 'true', [STATE]: 'true' } });
+  await h.worker();
+  assert.equal(h.scheduled.size, 1);
+  assert.equal(h.storage.get(STATE), 'true');
+  h.storage.set(TEST, 'false');
+  h.storage.set(ENABLED, 'true');
+  await h.worker();
+  assert.equal(h.scheduled.size, 2);
+  assert.equal(h.storage.get(STATE), 'false');
 });
 
 test('blocked permissions preserve baseline and retry after permission is restored', async () => {
@@ -240,6 +325,41 @@ test('unavailable background service cannot enable monitoring', async () => {
   const h = setup({ available: false });
   await assert.rejects(h.service.updateMonitorSettings({ isEnabled: true }), /backgroundUnsupported/);
   assert.equal(h.calls.includes('register'), false);
+});
+
+test('Android requires the foreground module from a rebuilt native app', async () => {
+  const h = setup({ nativeAvailable: false });
+  await assert.rejects(h.service.updateMonitorSettings({ isEnabled: true }), /backgroundServiceUnavailable/);
+  assert.equal(h.calls.includes('register'), false);
+});
+
+test('foreground service start failure rolls back settings and registration', async () => {
+  const h = setup({ failService: true });
+  await assert.rejects(h.service.updateMonitorSettings({ isEnabled: true }), /service start failed/);
+  assert.equal(h.storage.get(ENABLED), 'false');
+  assert.equal((await h.service.getMonitorSnapshot()).isRegistered, false);
+  assert.equal(h.state.serviceRunning, false);
+  await h.service.updateMonitorSettings({ isEnabled: true });
+  assert.equal(h.state.serviceRunning, true);
+});
+
+test('startup restores a stopped foreground service without resetting the task registration', async () => {
+  const h = setup({ serviceRunning: false, storage: { [ENABLED]: 'true' },
+    registration: { taskName: TASK, taskType: 'expo-background-task', options: { minimumInterval: 15 } } });
+  assert.equal((await h.service.getMonitorSnapshot()).issue, 'backgroundServiceStopped');
+  const snapshot = await h.service.initializeMonitor();
+  assert.equal(snapshot.isRegistered, true);
+  assert.equal(h.calls.includes('start-service'), true);
+  assert.equal(h.calls.includes('register'), false);
+});
+
+test('disabling the last monitoring switch stops the foreground service', async () => {
+  const h = setup();
+  await h.service.updateMonitorSettings({ isEnabled: true, isTestEnabled: true });
+  await h.service.updateMonitorSettings({ isTestEnabled: false });
+  assert.equal(h.state.serviceRunning, true);
+  await h.service.updateMonitorSettings({ isEnabled: false });
+  assert.equal(h.state.serviceRunning, false);
 });
 
 test('registration failure rolls settings back; queue still accepts the next attempt', async () => {

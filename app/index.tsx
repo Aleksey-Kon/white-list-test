@@ -20,8 +20,8 @@ import { translate, translateDiagnostic } from "@/utils/translations";
 import { GitHubButton } from "../components/GitHubButton";
 import { loadCustomSites, normalizeCustomSite, removeCustomSite, saveCustomSites } from "../utils/customSitesStorage";
 
-const SHOW_BACKGROUND_TEST = false;
-const SHOW_BACKGROUND = false;
+const SHOW_BACKGROUND_TEST = true;
+const SHOW_BACKGROUND = true;
 
 export default function HomeScreen() {
   const { t, locale, language } = useLocalization();

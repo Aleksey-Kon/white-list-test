@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
 import {
-  getMonitorSnapshot,
   initializeMonitor,
   monitorError,
   MonitorSettings,
@@ -28,7 +27,7 @@ export function useBackgroundMonitor() {
       busy.current = true;
       if (active) setIsBusy(true);
       try {
-        const next = await (initialize ? initializeMonitor() : getMonitorSnapshot());
+        const next = await initializeMonitor();
         if (active) {
           setSnapshot(next);
           setError(null);

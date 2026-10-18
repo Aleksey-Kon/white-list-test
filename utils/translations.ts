@@ -74,6 +74,11 @@ export const translations = {
       "Фоновый мониторинг доступен в установленной APK/iOS-сборке, не в Expo Go или браузере.",
     backgroundUnavailable:
       "Фоновые задачи недоступны. Проверьте фоновое обновление в настройках телефона и используйте установленную сборку.",
+    backgroundServiceUnavailable: "Для постоянного мониторинга нужна новая установленная Android-сборка приложения.",
+    backgroundServiceStopped: "Служба мониторинга остановлена. Откройте приложение для её восстановления.",
+    monitorServiceTitle: "Мониторинг белых списков включён",
+    monitorServiceBody: "Проверка каждые {minutes} мин. Нажмите, чтобы открыть настройки.",
+    monitorServiceChannel: "Постоянный мониторинг",
     registrationFailed: "Система не зарегистрировала фоновую задачу.",
     deliveryTestTitle: "Тест доставки уведомлений",
     deliveryTestBody:
@@ -89,7 +94,7 @@ export const translations = {
     restrictedTitle: "Возможен белый список",
     unrestrictedTitle: "Белый список не обнаружен",
     batteryHint:
-      "Система выбирает время запуска: от {minutes} минут, иногда дольше. Для проверки сайтов нужен мобильный интернет без Wi-Fi и VPN. В настройках батареи разрешите приложению работу в фоне.",
+      "На Android мониторинг работает с постоянным уведомлением и интервалом {minutes} мин. Для проверки сайтов нужен мобильный интернет без Wi-Fi и VPN. В настройках батареи разрешите работу в фоне; ограничения системы могут задерживать проверки.",
     backgroundTestHint:
       "Включите и сверните приложение: примерно через 15 секунд придёт тест доставки. Затем каждый фактический фоновый запуск сообщит результат или причину пропуска, даже если состояние сети не изменилось. Выключение отменяет ожидающий тест доставки.",
     lastRun: "Последний фоновый запуск: {date}. {message}",
@@ -185,6 +190,11 @@ export const translations = {
       "Background monitoring requires an installed APK/iOS build and is unavailable in Expo Go or a browser.",
     backgroundUnavailable:
       "Background tasks are unavailable. Check background refresh in device settings and use an installed build.",
+    backgroundServiceUnavailable: "Persistent monitoring requires a newly installed Android build of the app.",
+    backgroundServiceStopped: "The monitoring service has stopped. Open the app to restore it.",
+    monitorServiceTitle: "Whitelist monitoring is enabled",
+    monitorServiceBody: "Checking every {minutes} min. Tap to open settings.",
+    monitorServiceChannel: "Persistent monitoring",
     registrationFailed: "The system did not register the background task.",
     deliveryTestTitle: "Notification delivery test",
     deliveryTestBody:
@@ -200,7 +210,7 @@ export const translations = {
     restrictedTitle: "Possible whitelist restrictions",
     unrestrictedTitle: "No whitelist restrictions detected",
     batteryHint:
-      "The system schedules checks at intervals of at least {minutes} minutes, sometimes longer. Site checks require mobile data without Wi-Fi or VPN. Allow background activity for this app in battery settings.",
+      "On Android, monitoring uses an ongoing notification and a {minutes}-minute interval. Site checks require mobile data without Wi-Fi or VPN. Allow background activity in battery settings; system restrictions can still delay checks.",
     backgroundTestHint:
       "Enable this and minimize the app: a delivery test should arrive in about 15 seconds. Each actual background run will then report its result or why it was skipped, even if the network state has not changed. Turning this off cancels the pending delivery test.",
     lastRun: "Last background run: {date}. {message}",
